@@ -55,6 +55,11 @@ services:
     command: ["kabipay-auth"]
     env_file:
       - .env
+    environment:
+      KABIPAY_DB_POOL_MAX: ${KABIPAY_AUTH_DB_POOL_MAX:-2}
+      KABIPAY_TENANT_DB_POOL_MAX: ${KABIPAY_AUTH_TENANT_DB_POOL_MAX:-4}
+      KABIPAY_DB_IDLE_TIMEOUT_SECS: ${KABIPAY_AUTH_DB_IDLE_TIMEOUT_SECS:-300}
+      KABIPAY_DB_ACQUIRE_TIMEOUT_SECS: ${KABIPAY_AUTH_DB_ACQUIRE_TIMEOUT_SECS:-15}
     depends_on:
       postgres:
         condition: service_healthy
