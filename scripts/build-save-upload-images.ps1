@@ -6,6 +6,11 @@
     This script builds Docker images on the local machine only.
     It does not upload source code to the VPS.
     It saves images as .tar archives and uploads them using SCP.
+    Source directories are auto-detected from the workspace root. The current
+    HRMS repository names (hrms-svc, hrms-gateway, hrms-ui) and the older
+    KabiPay repository names (kabipay-svc, kabipay-gateway, kabipay-ui) are
+    both supported. Use -SvcDir, -GatewayDir, or -UiDir when a custom checkout
+    layout is required.
 
 .EXAMPLE
     .\scripts\build-save-upload-images.ps1 -Tag helior-001 -VpsHost 159.198.70.19 -VpsUser deploy
@@ -38,6 +43,14 @@ param(
 
     [string]$OutputDir = 'dist-images',
 
+    [string]$SourceRoot,
+
+    [string]$SvcDir,
+
+    [string]$GatewayDir,
+
+    [string]$UiDir,
+
     [string]$PublicBaseUrl,
 
     [string]$ApiBaseUrl,
@@ -60,9 +73,6 @@ $ErrorActionPreference = 'Stop'
 $ProjectDocumentationDir = Split-Path -Parent $PSScriptRoot
 $Root = Split-Path -Parent $ProjectDocumentationDir
 
-$SvcDir = Join-Path $Root 'kabipay-svc'
-$GatewayDir = Join-Path $Root 'kabipay-gateway'
-$UiDir = Join-Path $Root 'kabipay-ui'
 $OutDir = Join-Path $Root $OutputDir
 
 $SvcImage = "kabipay-svc:$Tag"
@@ -87,6 +97,62 @@ function Require-Command {
     if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
         throw "$Name is required but was not found on PATH"
     }
+}
+
+function Resolve-FullPath {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Path
+    )
+
+    if ([System.IO.Path]::IsPathRooted($Path)) {
+        return [System.IO.Path]::GetFullPath($Path)
+    }
+
+    return [System.IO.Path]::GetFullPath((Join-Path (Get-Location).Path $Path))
+}
+
+function Resolve-SourceDirectory {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$Role,
+
+        [AllowEmptyString()]
+        [string]$ProvidedPath,
+
+        [Parameter(Mandatory = $true)]
+        [string]$SourceRootPath,
+
+        [Parameter(Mandatory = $true)]
+        [string[]]$Candidates,
+
+        [Parameter(Mandatory = $true)]
+        [string]$OverrideParameterName
+    )
+
+    $CheckedPaths = @()
+
+    if (-not [string]::IsNullOrWhiteSpace($ProvidedPath)) {
+        $ResolvedPath = Resolve-FullPath $ProvidedPath
+        $CheckedPaths += $ResolvedPath
+
+        if (Test-Path (Join-Path $ResolvedPath 'Dockerfile')) {
+            return $ResolvedPath
+        }
+
+        throw "$Role source directory does not contain a Dockerfile: $ResolvedPath"
+    }
+
+    foreach ($Candidate in $Candidates) {
+        $CandidatePath = Join-Path $SourceRootPath $Candidate
+        $CheckedPaths += $CandidatePath
+
+        if (Test-Path (Join-Path $CandidatePath 'Dockerfile')) {
+            return $CandidatePath
+        }
+    }
+
+    throw "$Role source directory was not found. Checked: $($CheckedPaths -join ', '). Use $OverrideParameterName to provide the directory explicitly."
 }
 
 function Run-Command {
@@ -152,21 +218,45 @@ if (-not [string]::IsNullOrWhiteSpace($SshIdentityFile)) {
     $ScpArgs += @('-i', $SshIdentityFile)
 }
 
-if (-not (Test-Path (Join-Path $SvcDir 'Dockerfile'))) {
-    throw "Missing Dockerfile in $SvcDir"
+if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
+    $ResolvedSourceRoot = Resolve-FullPath $Root
+} else {
+    $ResolvedSourceRoot = Resolve-FullPath $SourceRoot
 }
 
-if (-not (Test-Path (Join-Path $GatewayDir 'Dockerfile'))) {
-    throw "Missing Dockerfile in $GatewayDir"
+if (-not (Test-Path $ResolvedSourceRoot)) {
+    throw "SourceRoot does not exist: $ResolvedSourceRoot"
 }
 
-if (-not (Test-Path (Join-Path $UiDir 'Dockerfile'))) {
-    throw "Missing Dockerfile in $UiDir"
-}
+$SvcDir = Resolve-SourceDirectory `
+    -Role 'Service' `
+    -ProvidedPath $SvcDir `
+    -SourceRootPath $ResolvedSourceRoot `
+    -Candidates @('hrms-svc', 'kabipay-svc') `
+    -OverrideParameterName '-SvcDir'
+
+$GatewayDir = Resolve-SourceDirectory `
+    -Role 'Gateway' `
+    -ProvidedPath $GatewayDir `
+    -SourceRootPath $ResolvedSourceRoot `
+    -Candidates @('hrms-gateway', 'kabipay-gateway') `
+    -OverrideParameterName '-GatewayDir'
+
+$UiDir = Resolve-SourceDirectory `
+    -Role 'UI' `
+    -ProvidedPath $UiDir `
+    -SourceRootPath $ResolvedSourceRoot `
+    -Candidates @('hrms-ui', 'kabipay-ui') `
+    -OverrideParameterName '-UiDir'
 
 if ($RemoteDir.Contains("'")) {
     throw "RemoteDir cannot contain a single quote"
 }
+
+Write-Host "==> Source directories" -ForegroundColor Cyan
+Write-Host "  Service: $SvcDir"
+Write-Host "  Gateway: $GatewayDir"
+Write-Host "  UI:      $UiDir"
 
 New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
 
