@@ -11,6 +11,10 @@ api.heliorsoft.com {
         reverse_proxy kabipay-auth:4001
     }
 
+    handle /files/employee-document* {
+        reverse_proxy kabipay-subgraphs:4013
+    }
+
     handle /healthz {
         reverse_proxy kabipay-auth:4001
     }
@@ -35,6 +39,10 @@ heliorsoft.com, www.heliorsoft.com, *.heliorsoft.com {
         reverse_proxy kabipay-auth:4001
     }
 
+    handle /files/employee-document* {
+        reverse_proxy kabipay-subgraphs:4013
+    }
+
     handle /healthz {
         reverse_proxy kabipay-auth:4001
     }
@@ -53,6 +61,10 @@ heliorsoft.com, www.heliorsoft.com, *.heliorsoft.com {
 
     handle /auth/* {
         reverse_proxy kabipay-auth:4001
+    }
+
+    handle /files/employee-document* {
+        reverse_proxy kabipay-subgraphs:4013
     }
 
     handle /healthz {

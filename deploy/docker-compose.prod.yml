@@ -14,6 +14,7 @@ services:
       - kabipay-ui
       - kabipay-gateway
       - kabipay-auth
+      - kabipay-subgraphs
     restart: unless-stopped
     networks:
       - app-network
@@ -101,6 +102,8 @@ services:
         wait
     env_file:
       - .env
+    environment:
+      KABIPAY_EMPLOYEE_PUBLIC_BASE: ${KABIPAY_EMPLOYEE_PUBLIC_BASE:-https://api.heliorsoft.com}
     depends_on:
       postgres:
         condition: service_healthy
