@@ -153,47 +153,11 @@ www.solvianconsultancy.heliorsoft.com
 
 That nested hostname is not covered by the existing wildcard certificate.
 
-## Deploy application changes if needed
+## Deployment is separate
 
-Tenant setup is a database operation. Rebuild and deploy Docker images only when code changed and the VPS does not already have the latest release.
+Tenant setup is a database and DNS operation. Do not build, upload, or deploy Docker images as part of normal tenant onboarding.
 
-From `hrms-documentation`:
-
-```powershell
-Set-Location D:\work\heliorventures\hrms-documentation
-
-$Tag = "helior-$(Get-Date -Format yyyyMMdd-HHmm)"
-
-.\scripts\build-save-upload-images.ps1 `
-  -Tag $Tag `
-  -VpsHost 159.198.70.19 `
-  -VpsUser deploy `
-  -PublicBaseUrl https://heliorsoft.com `
-  -ApiBaseUrl https://api.heliorsoft.com `
-  -TenantId "<tenant-id-printed-by-setup-script>" `
-  -DeployAfterUpload
-```
-
-If images are already uploaded and only deployment needs to run:
-
-```powershell
-Set-Location D:\work\heliorventures\hrms-documentation
-
-.\scripts\deploy-on-vps.ps1 `
-  -Tag "<existing-image-tag>" `
-  -VpsHost 159.198.70.19 `
-  -VpsUser deploy `
-  -PublicBaseUrl https://heliorsoft.com `
-  -ApiBaseUrl https://api.heliorsoft.com `
-  -TenantId "<tenant-id-printed-by-setup-script>" `
-  -SyncCompose `
-  -SyncCaddyfile `
-  -LoadImages `
-  -Up `
-  -Validate
-```
-
-Do not use `-SyncEnvExample` unless you intentionally want to reconcile `/opt/apps/.env` from the template.
+Only run deployment scripts when there is a separate application release to deploy. That release process belongs in the deployment runbook, not this tenant setup runbook.
 
 ## First-login validation
 
