@@ -307,34 +307,34 @@ Run-Command "Uploading image archives to ${Remote}:$RemoteDir" {
 }
 
 if ($DeployAfterUpload) {
-    $DeployArgs = @(
-        '-Tag', $Tag,
-        '-VpsHost', $VpsHost,
-        '-VpsUser', $VpsUser,
-        '-SshPort', $SshPort,
-        '-PublicBaseUrl', $PublicBaseUrl,
-        '-TenantId', $TenantId,
-        '-Deploy'
-    )
+    $DeployArgs = @{
+        Tag = $Tag
+        VpsHost = $VpsHost
+        VpsUser = $VpsUser
+        SshPort = $SshPort
+        PublicBaseUrl = $PublicBaseUrl
+        TenantId = $TenantId
+        Deploy = $true
+    }
 
     if (-not [string]::IsNullOrWhiteSpace($ApiBaseUrl)) {
-        $DeployArgs += @('-ApiBaseUrl', $ApiBaseUrl)
+        $DeployArgs.ApiBaseUrl = $ApiBaseUrl
     }
 
     if (-not [string]::IsNullOrWhiteSpace($SshIdentityFile)) {
-        $DeployArgs += @('-SshIdentityFile', $SshIdentityFile)
+        $DeployArgs.SshIdentityFile = $SshIdentityFile
     }
 
     if (-not [string]::IsNullOrWhiteSpace($CaddySiteAddress)) {
-        $DeployArgs += @('-CaddySiteAddress', $CaddySiteAddress)
+        $DeployArgs.CaddySiteAddress = $CaddySiteAddress
     }
 
     if ($WithWorker) {
-        $DeployArgs += '-WithWorker'
+        $DeployArgs.WithWorker = $true
     }
 
     if ($SkipDeploymentValidation) {
-        $DeployArgs += '-SkipValidation'
+        $DeployArgs.SkipValidation = $true
     }
 
     Run-Command "Deploying uploaded images on $Remote" {

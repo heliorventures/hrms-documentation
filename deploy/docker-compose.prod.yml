@@ -170,6 +170,25 @@ services:
     networks:
       - app-network
 
+  backup-runner:
+    build:
+      context: ./backup-runner
+    image: helior-backup-runner:${KABIPAY_IMAGE_TAG:-helior-001}
+    container_name: backup-runner
+    env_file:
+      - .env
+    volumes:
+      - ./images:/backup/images:ro
+      - ./backups:/backup/work
+    depends_on:
+      postgres:
+        condition: service_healthy
+    profiles:
+      - backup
+    restart: unless-stopped
+    networks:
+      - app-network
+
 volumes:
   caddy_data:
   caddy_config:
