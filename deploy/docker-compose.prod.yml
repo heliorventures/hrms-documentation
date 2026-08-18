@@ -104,6 +104,9 @@ services:
       - .env
     environment:
       KABIPAY_EMPLOYEE_PUBLIC_BASE: ${KABIPAY_EMPLOYEE_PUBLIC_BASE:-https://api.heliorsoft.com}
+      KABIPAY_LOCAL_FILE_ROOT: ${KABIPAY_LOCAL_FILE_ROOT:-/var/lib/kabipay/private-files}
+    volumes:
+      - ./data/private-files:${KABIPAY_LOCAL_FILE_ROOT:-/var/lib/kabipay/private-files}
     depends_on:
       postgres:
         condition: service_healthy
@@ -161,11 +164,13 @@ services:
     command: ["kabipay-outbox-worker"]
     env_file:
       - .env
+    environment:
+      KABIPAY_LOCAL_FILE_ROOT: ${KABIPAY_LOCAL_FILE_ROOT:-/var/lib/kabipay/private-files}
+    volumes:
+      - ./data/private-files:${KABIPAY_LOCAL_FILE_ROOT:-/var/lib/kabipay/private-files}
     depends_on:
       postgres:
         condition: service_healthy
-    profiles:
-      - worker
     restart: unless-stopped
     networks:
       - app-network

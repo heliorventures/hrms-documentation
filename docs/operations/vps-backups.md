@@ -13,6 +13,10 @@ The backup runner can upload:
 
 It uploads to an S3-compatible bucket. Cloudflare R2 is the recommended target.
 
+Private local-fallback files under `/opt/apps/data/private-files` are **not** included by the
+current backup runner. See [Private file storage](private-file-storage.md) before enabling local
+fallback in production; database and private-file backups must come from the same recovery point.
+
 ## Default policy
 
 | Setting | Default |

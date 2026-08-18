@@ -261,6 +261,7 @@ if ([string]::IsNullOrWhiteSpace($CaddySiteAddress)) {
 $AppDirQ = Quote-Sh $AppDir
 $ConfigDirQ = Quote-Sh "$AppDir/config"
 $ImageDirQ = Quote-Sh $ImageDir
+$PrivateFileDirQ = Quote-Sh "$AppDir/data/private-files"
 $TagQ = Quote-Sh $Tag
 $PublicBaseUrlQ = Quote-Sh $PublicBaseUrl
 $ApiBaseUrlQ = Quote-Sh $ApiBaseUrl
@@ -268,7 +269,7 @@ $TenantIdQ = Quote-Sh $TenantId.ToLowerInvariant()
 $RemoteEnvReconcileScriptPathQ = Quote-Sh $RemoteEnvReconcileScriptPath
 $RemoteTenantTargetScriptPathQ = Quote-Sh $RemoteTenantTargetScriptPath
 $RemoteValidationScriptPathQ = Quote-Sh $RemoteValidationScriptPath
-$WithWorkerFlag = if ($WithWorker) { '1' } else { '0' }
+$WithWorkerFlag = '1'
 $WithWorkerFlagQ = Quote-Sh $WithWorkerFlag
 $TempFiles = @()
 
@@ -680,7 +681,7 @@ echo "==> Deployment validation passed"
     Write-Utf8NoBomFile -Path $ValidationScriptPath -Content $ValidationScriptContent
     $TempFiles += $ValidationScriptPath
 
-    Invoke-Remote "Creating remote app directories on $Remote" "set -eu; mkdir -p $AppDirQ $ConfigDirQ $ImageDirQ"
+    Invoke-Remote "Creating remote app directories on $Remote" "set -eu; mkdir -p $AppDirQ $ConfigDirQ $ImageDirQ $PrivateFileDirQ; chmod 0700 $PrivateFileDirQ"
 
     Copy-ToRemote "Uploading runtime UI config" $UiConfigPath $RemoteUiConfigPath
 
@@ -710,20 +711,10 @@ echo "==> Deployment validation passed"
     }
 
     if ($Up) {
-        $ProfileArgs = ''
+        Invoke-Remote "Starting KabiPay containers with docker compose" "set -eu; cd $AppDirQ; test -f docker-compose.yml; test -f .env; KABIPAY_IMAGE_TAG=$TagQ docker compose up -d"
+        $AppServices = 'caddy kabipay-auth kabipay-subgraphs kabipay-gateway kabipay-ui kabipay-outbox-worker'
 
-        if ($WithWorker) {
-            $ProfileArgs = '--profile worker '
-        }
-
-        Invoke-Remote "Starting KabiPay containers with docker compose" "set -eu; cd $AppDirQ; test -f docker-compose.yml; test -f .env; KABIPAY_IMAGE_TAG=$TagQ docker compose $ProfileArgs up -d"
-        $AppServices = 'caddy kabipay-auth kabipay-subgraphs kabipay-gateway kabipay-ui'
-
-        if ($WithWorker) {
-            $AppServices = "$AppServices kabipay-outbox-worker"
-        }
-
-        Invoke-Remote "Recreating KabiPay app containers with current env" "set -eu; cd $AppDirQ; KABIPAY_IMAGE_TAG=$TagQ docker compose $ProfileArgs up -d --force-recreate $AppServices"
+        Invoke-Remote "Recreating KabiPay app containers with current env" "set -eu; cd $AppDirQ; KABIPAY_IMAGE_TAG=$TagQ docker compose up -d --force-recreate $AppServices"
     } else {
         Write-Host "==> Skipping docker compose up. Use -Up when you are ready to recreate containers." -ForegroundColor Yellow
     }
@@ -733,7 +724,7 @@ echo "==> Deployment validation passed"
         Invoke-Remote "Syncing tenant database target from remote .env" "set -eu; bash $RemoteTenantTargetScriptPathQ $AppDirQ $TenantIdQ"
 
         if ($Up) {
-            Invoke-Remote "Recreating app containers after tenant target sync" "set -eu; cd $AppDirQ; KABIPAY_IMAGE_TAG=$TagQ docker compose $ProfileArgs up -d --force-recreate $AppServices"
+            Invoke-Remote "Recreating app containers after tenant target sync" "set -eu; cd $AppDirQ; KABIPAY_IMAGE_TAG=$TagQ docker compose up -d --force-recreate $AppServices"
         }
     } else {
         Write-Host "==> Skipping tenant database target sync. Use -SyncTenantDatabaseTarget when tenant_database must match remote .env." -ForegroundColor Yellow

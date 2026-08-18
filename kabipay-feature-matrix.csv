@@ -30,7 +30,7 @@ Workplace,Recruitment,Implemented,0016 recruitment,"ATS, AI JD, scorecards (Keka
 Workplace,Onboarding,Implemented,0017 onboarding_offboarding,Onboarding+ pre-boarding (Keka tiers),Checklist style in FEATURES
 Workplace,Performance,Implemented,0018 performance,"Goals OKRs 1:1s PIP (Keka)",Your DB has performance; Keka advertises more PM depth
 Workplace,Learning (LMS),Implemented,0019 lms,Inbuilt LMS (Keka),Skills/courses in UI per FEATURES
-Workplace,Assets,Implemented,0022 assets,Asset register,KabiPay page present
+Workplace,Assets,Implemented (QA pending),0022 assets + 0057 lifecycle + 0058 integrity,Asset register,"Category/inventory CRUD, assignment, return, history, retirement, paging, and role-aware UI are wired; codegen and runtime role/migration/concurrency verification pending"
 Workplace,Grievance,Implemented,0023 grievance,Helpdesk (Keka cross HR/IT),Different positioning: case vs helpdesk
 Admin,Employee CRUD,Implemented,0007 employee core,Core HR,Create/update modals
 Admin,Attendance / punch policy,Implemented,0032 attendance_punch_policy,Advanced shift scheduler,Admin page implemented

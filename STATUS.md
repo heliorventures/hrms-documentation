@@ -611,7 +611,7 @@ The five roadmap bullets under §10 are **parity targets** aligned with [Keka](h
 | 19 | LMS | ✅ | read-heavy | ✅ | **M20** (**Workplace**); paths/certs deferred |
 | 20 | Succession | ✅ | read-heavy | ✅ | **M23** |
 | 21 | Compensation | ✅ | read-heavy | ✅ | **M23** |
-| 22 | Assets | ✅ | read-heavy | ✅ | **M21** read v1 (**Workplace**) |
+| 22 | Assets | ✅ + **0057 lifecycle** + **0058 integrity** | ✅ category/inventory/allocation/return/retire | **QA** | Full lifecycle implementation is wired; codegen, migration, concurrency, and role-based browser verification remain. |
 | 23 | Grievance | ✅ | read-heavy | ✅ | **M22** submit + list (**Workplace**) |
 | 24 | Analytics / reporting | ✅ | ✅ + outbox (HR) | ✅ | **M24** |
 | 25 | Workflow engine | ✅ | **M8** leave; **M32** expense (**`kabipay-expense`**); **M29** read; **M31** definition **write** (**`kabipay-workflow`**) | 🟨 | **Workplace → Workflows** + **Admin** + **Expenses** ✅. **D:** visual **designer**. |
@@ -649,7 +649,7 @@ Work through this list **in order** unless a security incident reprioritises. Af
 | **M18** | **Client UI — onboarding / offboarding** | ✅ **onboarding v1** (2026-04-24) | Checklist query + self-service completion; HR may toggle items for employees in scope (same rule as documents). |
 | **M19** | **Client UI — performance** | ✅ **read v1** (2026-04-24) | **Workplace → Performance**: **`reviewCycles`** + **`goals`**. |
 | **M20** | **Client UI — LMS** | ✅ **read v1** (2026-04-24) | **Workplace → Learning**: **`skills`** + **`courses`**. |
-| **M21** | **Client UI — assets** | ✅ **read v1** (2026-04-24) | **Workplace → Assets**: **`assetCategories`** + **`assets`**; assign/return deferred. |
+| **M21** | **Client UI — assets** | **QA** (lifecycle implementation 2026-08-18) | **Workplace → Assets**: category and inventory create/edit/retire, available-asset search, assign/return, active/history paging, generated GraphQL operations, and role-aware self/read/manage views. Runtime verification remains. |
 | **M22** | **Client UI — grievance** | ✅ **done** (2026-04-24) | **`submitGrievanceCase`** + scoped **`grievanceCases`** (self vs HR-all); **Workplace → Grievance** UI. |
 | **M23** | **Client UI — succession + compensation** | ✅ **read v1** (2026-04-27) | **Workplace → Succession** (`competencies`, `talentPools`); **Workplace → Compensation** (`compensationReviewCycles`, `salaryBands` with designation titles from `designations`). Mutations / calibration flows deferred. |
 | **M24** | **Analytics + outbox + offboarding v1** | ✅ **read + submit** (2026-04-27) | New **`kabipay-analytics`** (port **4029**): reports, dashboards, workforce snapshots, **`outboxEvents`** (HR). **Employee:** **`separations`**, **`submitSeparation`**. **UI:** **`/insights`**, **Onboarding & exit** tabs, **Workplace → Workflows** (route shell). **M29** adds **`workflowsWithSteps`**-aware **step list** + **codegen**-safe queries. **download** HMAC includes **`mime_type`**. |
@@ -697,7 +697,7 @@ Work through this list **in order** unless a security incident reprioritises. Af
 | 19 | LMS | ✅ | read-heavy | ✅ | **M20** skills + courses catalog. |
 | 20 | Succession | ✅ | read-heavy | ✅ | **M23** catalog + talent pools. |
 | 21 | Compensation | ✅ | read-heavy | ✅ | **M23** review cycles + salary bands (read v1). |
-| 22 | Assets | ✅ | read-heavy | ✅ | **M21** inventory read v1. |
+| 22 | Assets | ✅ + **0057** + **0058** | ✅ lifecycle | **QA** | **M21** lifecycle implementation; codegen and runtime role/migration verification pending. |
 | 23 | Grievance | ✅ | ✅ read + submit | ✅ | **M22** scoped list + **`submitGrievanceCase`**. |
 | 24 | Analytics | ✅ | ✅ `kabipay-analytics` + **M34** integrations/audit (**HR**) | ✅ | Insights + outbox + **integrations & audit** tab |
 | 25 | Workflow | ✅ | **M8** leave; **M32** expense runtime; **M29** read; **M31** definition mutations | 🟨 | **Workflows** + **Admin** + **Expense** claims ✅; drag-and-drop ⬜. |
