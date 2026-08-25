@@ -163,7 +163,7 @@ Implementation status: **QA**. The React workspace, authored GraphQL operations,
 | Evidence | Result / link |
 |---|---|
 | Focused TypeScript asset workspace check | Pending rerun after review remediation |
-| GraphQL code generation | Pending regeneration after final schema changes |
+| GraphQL code generation | Passed 2026-08-19 against restarted live gateway after removing temporary asset/attachment/company-document SDL fallbacks |
 | Validation unit test | Pending user run |
 | Manager browser lifecycle | Pending |
 | Employee self-service browser run | Pending |

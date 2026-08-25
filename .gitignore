@@ -9,3 +9,6 @@ pgConnect.json
 .env
 .env.*
 !deploy/.env.example
+
+# Private local-fallback documents created by Docker Compose must never enter source control.
+deploy/data/private-files/
