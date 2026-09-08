@@ -97,6 +97,7 @@ services:
         kabipay-workflow &
         kabipay-notification &
         kabipay-analytics &
+        kabipay-survey &
         wait -n
         kill 0
         wait
@@ -104,6 +105,11 @@ services:
       - .env
     environment:
       KABIPAY_EMPLOYEE_PUBLIC_BASE: ${KABIPAY_EMPLOYEE_PUBLIC_BASE:-https://api.heliorsoft.com}
+      KABIPAY_NOTIFICATION_PUBLIC_BASE: ${KABIPAY_NOTIFICATION_PUBLIC_BASE:-https://api.heliorsoft.com}
+      KABIPAY_PREJOINING_PUBLIC_ORIGIN: ${KABIPAY_PREJOINING_PUBLIC_ORIGIN:-}
+      KABIPAY_PREJOINING_SIGNING_KEY: ${KABIPAY_PREJOINING_SIGNING_KEY:-}
+      KABIPAY_PREJOINING_EMAIL_URL: ${KABIPAY_PREJOINING_EMAIL_URL:-}
+      KABIPAY_PREJOINING_EMAIL_TOKEN: ${KABIPAY_PREJOINING_EMAIL_TOKEN:-}
       KABIPAY_LOCAL_FILE_ROOT: ${KABIPAY_LOCAL_FILE_ROOT:-/var/lib/kabipay/private-files}
     volumes:
       - ./data/private-files:${KABIPAY_LOCAL_FILE_ROOT:-/var/lib/kabipay/private-files}
@@ -129,6 +135,7 @@ services:
       - "4027"
       - "4028"
       - "4029"
+      - "4030"
     restart: unless-stopped
     networks:
       - app-network
