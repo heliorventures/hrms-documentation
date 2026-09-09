@@ -19,6 +19,15 @@
     }
 }
 
+rms.heliorsoft.com {
+    # Keep this line if the existing Caddyfile uses the same Cloudflare origin cert.
+    tls /etc/caddy/certs/origin.pem /etc/caddy/certs/origin.key
+
+    encode gzip
+
+    reverse_proxy rms-app:3000
+}
+
 api.heliorsoft.com {
     tls /etc/caddy/certs/origin.pem /etc/caddy/certs/origin.key
 
