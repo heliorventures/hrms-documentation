@@ -14,6 +14,18 @@ Preserve all uncommitted work across the separate repositories. Do not auto-comm
 
 ## Recommended continuation order
 
+Latest user direction (10 September): complete surveys before appraisal/goals/performance.
+All local survey implementation is approved without repeated approval; MFA/login remains
+explicitly excluded. The [survey closure record](../../docs/superpowers/reviews/2026-09-10-survey-release-closure.md)
+tracks current implementation and final verification. This does not authorize migration
+execution, deployment, emails, commits or live tenant writes.
+
+Survey follow-up is now locally implemented and verified: 41 backend tests, 21 UI tests,
+16 survey source files lint-clean, service/worker and UI/gateway typechecks, and 13 UI
+operations validated against the compiled survey schema. Migration 0084 is prepared in
+hrms-database; migration execution, matched-version rollout and real tenant acceptance
+remain outstanding. Do not rebuild these survey features from the older D5 absence list.
+
 1. Capture current Git status in each relevant repository and read the verification records linked below. Preserve unrelated concurrent changes.
 2. Use resolved decision D1 below and verify its regression coverage. Do not introduce a leave approval-date restriction.
 3. Address the confirmed module-entitlement gap as a separately scoped security implementation before claiming subscription enforcement.
@@ -112,8 +124,11 @@ These are broader than the original13 enhancements. Scope each before implementa
 - [x] Source comparison against the [automation plan](../hrms-documentation/docs/superpowers/plans/2026-09-08-automated-employee-notifications.md), [appraisal plan](../hrms-documentation/docs/superpowers/plans/2026-09-08-performance-feedback-appraisal.md), and [survey plan](../hrms-documentation/docs/superpowers/plans/2026-09-08-anonymous-surveys.md) recorded in the [10 September D5 gap review](superpowers/reviews/2026-09-10-d5-gap-review.md). This comparison does not close implementation or runtime acceptance.
 - [ ] Verify actual schema operations, service deployment, migration state, scheduled generation and role-specific UI transitions.
 - [ ] Preserve employee opt-in for company-wide celebrations and tenant enablement; test private delivery when consent is absent.
-- [ ] Verify survey minimum-response suppression and department/team visibility; results must not identify respondents.
-- [x] Concrete missing transitions and defects are listed in the [D5 gap review](superpowers/reviews/2026-09-10-d5-gap-review.md), including survey storage timestamp linkage, missing publication cohort snapshots, performance locking/acknowledgement issues and larger missing workflows. These broader modules are not fully complete.
+- [ ] Complete runtime survey minimum-response suppression and department/team visibility acceptance; results must not identify respondents. Local coverage and current feature closure are tracked in the [survey release record](../../docs/superpowers/reviews/2026-09-10-survey-release-closure.md).
+- [x] Concrete missing transitions and defects are listed in the [D5 gap review](../../docs/superpowers/reviews/2026-09-10-d5-gap-review.md). Goal correction, acknowledgement issues and larger missing workflows remain; these broader modules are not fully complete.
+- [x] Approved appraisal answer-validation scope completed locally: required primary answers follow question type, and supplemental rating controls follow the current reviewer. Optional answers, primary ratings, comments and permissions are unchanged. [Verification](../../docs/superpowers/reviews/2026-09-10-appraisal-answer-validation.md): 25 backend and 8 UI tests passed; independent review found no blocking issue. Runtime acceptance remains open. No MFA/login or schema changes.
+- [x] Approved appraisal concurrency scope completed locally: template publication shares the draft-edit lock; goal proposal/approval share the cycle lock with advancement and keep validation/writes transactional. [Verification](../../docs/superpowers/reviews/2026-09-10-appraisal-concurrency.md): 18 performance tests and non-test library compile check passed; independent review found no blocking issue. Real PostgreSQL multi-session concurrency validation remains open. No migrations or MFA/login changes.
+- [x] Approved new-survey privacy scope completed locally: boolean completion replaces timing linkage, department/manager snapshots are captured at publication, and administrators receive actual assignment completion. [Final review and evidence](../../docs/superpowers/reviews/2026-09-10-survey-privacy-final-review.md): 19 survey library tests passed; generator and migration structural checks passed. Migration 0082 is prepared, not executed, and halts on existing assignment/response rows. No legacy backfill is needed under the user's no-existing-surveys decision. Runtime/concurrency and coordinated service/schema release acceptance remain open.
 - Current user boundary: no MFA/login/password-recovery work. Tenant/release validation is user-owned; local corrections do not authorize live actions.
 
 ### D6 — reusable queued email delivery service
