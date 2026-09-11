@@ -1,0 +1,566 @@
+input AddManagedAttendanceSegmentInput {
+	checkInDate: NaiveDate
+	checkOutDate: NaiveDate
+	employeeId: ID!
+	workDate: NaiveDate!
+	checkInTime: NaiveTime!
+	checkOutTime: NaiveTime!
+	reason: String!
+}
+
+"""
+Log a completed interval inside a historical/current attendance window.
+Supply both actual dates for after-midnight or otherwise ambiguous wall times.
+"""
+input AddManualAttendanceSegmentInput {
+	checkInDate: NaiveDate
+	checkOutDate: NaiveDate
+	workDate: NaiveDate!
+	checkInTime: NaiveTime!
+	checkOutTime: NaiveTime!
+}
+
+type Attendance {
+	id: ID!
+	tenantId: ID!
+	employeeId: ID!
+	shiftId: ID
+	workDate: NaiveDate!
+	checkInTime: NaiveTime
+	checkOutTime: NaiveTime
+	checkInAt: DateTime
+	checkOutAt: DateTime
+	"""
+	WGS84 latitude for punch-in, when recorded (string decimal, matches DB `NUMERIC`).
+	"""
+	checkInLat: String
+	checkInLng: String
+	"""
+	WGS84 coordinates for punch-out, when recorded.
+	"""
+	checkOutLat: String
+	checkOutLng: String
+	status: String
+	source: String
+	lateMinutes: Int
+}
+
+type AttendanceAdjustmentPolicy {
+	maxSelfAdjustDays: Int!
+}
+
+type AttendanceConnection {
+	edges: [AttendanceEdge!]!
+	pageInfo: AttendancePageInfo!
+}
+
+type AttendanceDailyReportConnection {
+	edges: [AttendanceDailyReportEdge!]!
+	pageInfo: AttendancePageInfo!
+}
+
+type AttendanceDailyReportEdge {
+	cursor: String!
+	node: AttendanceDailyReportRow!
+}
+
+type AttendanceDailyReportRow {
+	employeeId: ID!
+	employeeName: String!
+	employeeCode: String!
+	workDate: NaiveDate!
+	timezone: String!
+	firstCheckInAt: DateTime
+	lastCheckOutAt: DateTime
+	loggedMinutes: Int!
+	expectedMinutes: Int
+	status: String!
+	segmentCount: Int!
+}
+
+type AttendanceDayPolicy {
+	revision: Int!
+	initialized: Boolean!
+	legacyActivationPending: Boolean!
+	legacyActivationDate: NaiveDate
+	currentPolicy: AttendanceDayPolicyVersion!
+	pendingPolicy: AttendanceDayPolicyVersion
+	currentWindow: AttendanceDayWindow!
+}
+
+type AttendanceDayPolicyPreview {
+	revision: Int!
+	transition: AttendanceDayWindow!
+	following: AttendanceDayWindow!
+}
+
+type AttendanceDayPolicyVersion {
+	effectiveWorkDate: NaiveDate!
+	boundaryMinutes: Int!
+	timezone: String!
+}
+
+type AttendanceDayWindow {
+	workDate: NaiveDate!
+	startsAt: DateTime!
+	endsAt: DateTime!
+	timezone: String!
+	boundaryMinutes: Int!
+}
+
+type AttendanceEdge {
+	cursor: String!
+	node: Attendance!
+}
+
+type AttendancePageInfo {
+	endCursor: String
+	hasNextPage: Boolean!
+}
+
+type AttendancePeriodSummary {
+	completedMinutes: Int!
+	workedDays: Int!
+	averageMinutes: Float
+	incompleteSegments: Int!
+}
+
+"""
+Tenant policy for live punch: optional geofence around a site and/or IP allowlist.
+"""
+type AttendancePunchPolicy {
+	"""
+	Set after the first successful `upsertAttendancePunchPolicy`.
+	"""
+	id: ID
+	tenantId: ID!
+	isEnforced: Boolean!
+	siteLatitude: Float
+	siteLongitude: Float
+	maxDistanceMeters: Int
+	"""
+	Comma-separated IPs or CIDRs (e.g. `203.0.113.10,192.168.0.0/24`).
+	"""
+	ipAllowlist: String
+	updatedAt: DateTime
+}
+
+type AttendanceReportSummary {
+	totalDays: Int!
+	presentDays: Int!
+	halfDays: Int!
+	absentDays: Int!
+	onLeaveDays: Int!
+	holidayDays: Int!
+	weeklyOffDays: Int!
+	incompleteDays: Int!
+	unscheduledDays: Int!
+	totalLoggedMinutes: Int!
+}
+
+input CreateTimesheetEntryInput {
+	workDate: NaiveDate!
+	hoursWorked: String!
+	projectCode: String
+	description: String
+}
+
+"""
+Implement the DateTime<Utc> scalar
+
+The input/output is a string in RFC3339 format.
+"""
+scalar DateTime
+
+type HolidayCalendar {
+	id: ID!
+	tenantId: ID!
+	locationId: ID
+	name: String!
+	year: Int!
+	createdAt: DateTime!
+	updatedAt: DateTime!
+}
+
+type HolidayDay {
+	id: ID!
+	calendarId: ID!
+	holidayDate: NaiveDate!
+	name: String!
+	holidayType: String
+}
+
+"""
+A holiday in a location calendar, with the parent calendar’s display name.
+"""
+type HolidayEntry {
+	id: ID!
+	calendarId: ID!
+	calendarName: String!
+	holidayDate: NaiveDate!
+	name: String!
+	"""
+	Optional category, e.g. NATIONAL, REGIONAL
+	"""
+	holidayType: String
+}
+
+type ManagedAttendance {
+	id: ID!
+	tenantId: ID!
+	employeeId: ID!
+	shiftId: ID
+	workDate: NaiveDate!
+	checkInTime: NaiveTime
+	checkOutTime: NaiveTime
+	checkInAt: DateTime
+	checkOutAt: DateTime
+	checkInLat: String
+	checkInLng: String
+	checkOutLat: String
+	checkOutLng: String
+	status: String
+	source: String
+	lateMinutes: Int
+	employeeName: String!
+	employeeCode: String!
+	regularizationStatus: String
+	createdAt: DateTime!
+	updatedAt: DateTime!
+}
+
+type ManagedAttendanceConnection {
+	edges: [ManagedAttendanceEdge!]!
+	pageInfo: AttendancePageInfo!
+}
+
+type ManagedAttendanceEdge {
+	cursor: String!
+	node: ManagedAttendance!
+}
+
+type MutationRoot {
+	scheduleAttendanceDayPolicy(input: ScheduleAttendanceDayPolicyInput!): AttendanceDayPolicy!
+	"""
+	Record a punch: closes the **open** segment (punch in without out) if any, otherwise
+	starts a **new** segment (new `attendance` row). Multiple in/out pairs per `work_date`
+	are allowed; there is no “third punch” error.
+	
+	When `input` includes **both** `latitude` and `longitude` (WGS84), they are stored on
+	`attendance` as punch-in coordinates for a new row, or punch-out coordinates when closing
+	an open segment (`check_out_lat` / `check_out_lng` columns).
+	"""
+	punchToday(input: PunchTodayInput): Attendance!
+	"""
+	Create or update the tenant’s live punch policy (geofence + IP allowlist).
+	"""
+	upsertAttendancePunchPolicy(input: UpsertAttendancePunchPolicyInput!): AttendancePunchPolicy!
+	"""
+	Add a full **in + out** segment for a `workDate` (no future dates) when the user did not
+	punch live — does not modify `punch_today` behaviour.
+	"""
+	addManualAttendanceSegment(input: AddManualAttendanceSegmentInput!): Attendance!
+	"""
+	Update an existing manual attendance segment with server-side overlap and daily-cap checks.
+	"""
+	updateManualAttendanceSegment(input: UpdateManualAttendanceSegmentInput!): Attendance!
+	addManagedAttendanceSegment(input: AddManagedAttendanceSegmentInput!): ManagedAttendance!
+	updateManagedAttendanceSegment(input: UpdateManagedAttendanceSegmentInput!): ManagedAttendance!
+	createTimesheetEntry(input: CreateTimesheetEntryInput!): TimesheetEntry!
+	"""
+	Soft-deletes a row; it must belong to the caller’s employee.
+	"""
+	deleteTimesheetEntry(id: ID!): Boolean!
+	updateTimesheetEntry(input: UpdateTimesheetEntryInput!): TimesheetEntry!
+	submitTimesheetWeek(weekStartDate: NaiveDate!): TimesheetWeekBatch!
+	approveTimesheetWeekBatch(id: ID!, expectedWorkflowStepId: ID!): TimesheetWeekBatch!
+	rejectTimesheetWeekBatch(id: ID!, expectedWorkflowStepId: ID!, rejectionReason: String): Boolean!
+	upsertAttendanceAdjustmentPolicy(input: UpsertAttendanceAdjustmentPolicyInput!): AttendanceAdjustmentPolicy!
+	upsertTimesheetLockPolicy(input: UpsertTimesheetLockPolicyInput!): TimesheetLockPolicy!
+	upsertTimesheetProject(code: String!, name: String!, displayOrder: Int = null): Boolean!
+	upsertTimesheetTaskTypes(projectCode: String!, taskCodes: [String!]!): Boolean!
+	"""
+	Replace per-employee allowed project codes (empty list clears restrictions — full catalog allowed).
+	"""
+	setEmployeeTimesheetProjects(employeeId: ID!, projectCodes: [String!]!): Boolean!
+	upsertHolidayCalendar(input: UpsertHolidayCalendarInput!): HolidayCalendar!
+	deleteHolidayCalendar(calendarId: ID!): Boolean!
+	upsertHolidayDay(input: UpsertHolidayDayInput!): HolidayDay!
+	deleteHolidayDay(holidayId: ID!): Boolean!
+}
+
+"""
+ISO 8601 calendar date without timezone.
+Format: %Y-%m-%d
+
+# Examples
+
+* `1994-11-13`
+* `2000-02-24`
+"""
+scalar NaiveDate
+
+"""
+ISO 8601 time without timezone.
+Allows for the nanosecond precision and optional leap second representation.
+Format: %H:%M:%S%.f
+
+# Examples
+
+* `08:59:60.123`
+"""
+scalar NaiveTime
+
+"""
+One work day: all punch segments + sum of completed segment lengths (minutes).
+"""
+type PunchDaySummary {
+	workDate: NaiveDate!
+	startsAt: DateTime!
+	endsAt: DateTime!
+	timezone: String!
+	boundaryMinutes: Int!
+	"""
+	Sum of (check out − check in) for every **completed** segment that day.
+	"""
+	totalWorkedMinutes: Int!
+	"""
+	Current in-progress row (punched in, not out), if any.
+	"""
+	openSegment: Attendance
+	"""
+	All segment rows for that day, oldest first.
+	"""
+	segments: [Attendance!]!
+}
+
+"""
+Optional client GPS (browser / mobile) for the **current** punch (in or out).
+"""
+input PunchTodayInput {
+	latitude: Float
+	longitude: Float
+}
+
+type QueryRoot {
+	"""
+	Tenant configuration metadata; only explicit ALL configuration authority.
+	"""
+	attendanceDayPolicy: AttendanceDayPolicy!
+	"""
+	Read-only metadata for current or historical corrections; no employee data.
+	"""
+	attendanceDayWindow(workDate: NaiveDate): AttendanceDayWindow!
+	previewAttendanceDayPolicy(input: ScheduleAttendanceDayPolicyInput!): AttendanceDayPolicyPreview!
+	attendanceHealth: String!
+	"""
+	Live punch policy (geofence + IP). Requires exact scoped `attendance:read`.
+	"""
+	attendancePunchPolicy: AttendancePunchPolicy!
+	"""
+	List all shift templates for the caller's tenant.
+	"""
+	shifts(limit: Int! = 50): [Shift!]!
+	"""
+	Recent attendance rows for the caller's tenant, newest first.
+	"""
+	attendance(limit: Int! = 50, fromDate: NaiveDate, toDate: NaiveDate): [Attendance!]!
+	"""
+	Complete-period totals for the JWT-linked employee; cursor pages never affect totals.
+	"""
+	myAttendanceSummary(fromDate: NaiveDate!, toDate: NaiveDate!): AttendancePeriodSummary!
+	"""
+	Cursor-paginated attendance for the JWT-linked employee only.
+	"""
+	myAttendance(fromDate: NaiveDate, toDate: NaiveDate, first: Int, after: String): AttendanceConnection!
+	"""
+	Cursor-paginated attendance for active employees within the caller's explicit attendance scope.
+	"""
+	managedAttendance(fromDate: NaiveDate!, toDate: NaiveDate!, employeeSearch: String, employeeId: ID, first: Int, after: String): ManagedAttendanceConnection!
+	"""
+	Policy-derived, cursor-paginated daily attendance report for the caller's
+	exact `attendance:read` scope.
+	"""
+	attendanceDailyReport(fromDate: NaiveDate!, toDate: NaiveDate!, employeeId: ID, employeeSearch: String, first: Int, after: String): AttendanceDailyReportConnection!
+	"""
+	Complete summary over the same authorized and filtered projection used
+	by `attendanceDailyReport`; it is never derived from a browser page.
+	"""
+	attendanceReportSummary(fromDate: NaiveDate!, toDate: NaiveDate!, employeeId: ID, employeeSearch: String): AttendanceReportSummary!
+	"""
+	Multi-segment punch for one work day: total worked minutes and all segments.
+	Requires exact scoped `attendance:read` and remains bound to the JWT employee.
+	"""
+	punchDaySummary(workDate: NaiveDate): PunchDaySummary!
+	"""
+	Holidays on or after `fromDate` (defaults to today), all calendars in the tenant.
+	"""
+	upcomingHolidays(fromDate: NaiveDate, limit: Int! = 30): [HolidayEntry!]!
+	"""
+	Timesheet rows for an employee. Omit `employeeId` to use the JWT-linked employee.
+	"""
+	timesheetEntries(employeeId: ID, limit: Int! = 100, fromDate: NaiveDate, toDate: NaiveDate): [TimesheetEntry!]!
+	attendanceAdjustmentPolicy: AttendanceAdjustmentPolicy!
+	timesheetLockPolicy: TimesheetLockPolicy!
+	timesheetProjects(limit: Int! = 100): [TimesheetProjectOption!]!
+	timesheetTaskTypes(projectCode: String!): [String!]!
+	"""
+	Projects the employee may log hours against (full catalog when no per-employee assignments exist).
+	Omit `employeeId` for the JWT-linked employee.
+	"""
+	timesheetProjectsForEmployee(employeeId: ID, limit: Int! = 100): [TimesheetProjectOption!]!
+	"""
+	Assigned project codes only (empty ⇒ unrestricted catalog).
+	"""
+	employeeTimesheetProjectCodes(employeeId: ID!): [String!]!
+	timesheetWeekBatches(status: String, limit: Int! = 80): [TimesheetWeekBatch!]!
+	"""
+	List holiday calendars for the tenant. Requires exact scoped `attendance:read`.
+	"""
+	holidayCalendars(year: Int, limit: Int! = 50): [HolidayCalendar!]!
+	"""
+	List holidays in a calendar. Requires exact scoped `attendance:read`.
+	"""
+	holidaysInCalendar(calendarId: ID!, limit: Int! = 100): [HolidayDay!]!
+}
+
+input ScheduleAttendanceDayPolicyInput {
+	"""
+	Tenant-local time in strict HH:mm format.
+	"""
+	boundaryTime: String!
+	effectiveWorkDate: NaiveDate!
+	expectedRevision: Int!
+}
+
+type Shift {
+	id: ID!
+	tenantId: ID!
+	name: String!
+	startTime: NaiveTime
+	endTime: NaiveTime
+	workHours: Int
+	isNightShift: Boolean!
+	createdAt: DateTime!
+	updatedAt: DateTime!
+}
+
+type TimesheetEntry {
+	id: ID!
+	tenantId: ID!
+	employeeId: ID!
+	workDate: NaiveDate!
+	hoursWorked: String!
+	projectCode: String
+	description: String
+	status: String!
+	batchId: ID
+	createdAt: DateTime!
+	updatedAt: DateTime!
+}
+
+type TimesheetLockPolicy {
+	editableWeekSpan: Int!
+	lockApprovedEntries: Boolean!
+}
+
+type TimesheetProjectOption {
+	code: String!
+	name: String!
+}
+
+type TimesheetWeekBatch {
+	id: ID!
+	tenantId: ID!
+	employeeId: ID!
+	weekStartDate: NaiveDate!
+	status: String!
+	workflowInstanceId: ID
+	submittedAt: DateTime
+	rejectionReason: String
+	pendingApprovalStage: String
+	viewerMayApprove: Boolean!
+	pendingApprovalStepId: ID
+	employeeCode: String
+	employeeName: String
+}
+
+input UpdateManagedAttendanceSegmentInput {
+	checkInDate: NaiveDate
+	checkOutDate: NaiveDate
+	id: ID!
+	workDate: NaiveDate!
+	checkInTime: NaiveTime!
+	checkOutTime: NaiveTime!
+	reason: String!
+	expectedUpdatedAt: DateTime!
+}
+
+"""
+Correct the original completed or incomplete segment after client-side review.
+"""
+input UpdateManualAttendanceSegmentInput {
+	checkInDate: NaiveDate
+	checkOutDate: NaiveDate
+	id: ID!
+	workDate: NaiveDate!
+	checkInTime: NaiveTime!
+	checkOutTime: NaiveTime!
+}
+
+input UpdateTimesheetEntryInput {
+	id: ID!
+	workDate: NaiveDate!
+	hoursWorked: String!
+	projectCode: String
+	description: String
+}
+
+input UpsertAttendanceAdjustmentPolicyInput {
+	maxSelfAdjustDays: Int!
+}
+
+input UpsertAttendancePunchPolicyInput {
+	isEnforced: Boolean!
+	siteLatitude: Float
+	siteLongitude: Float
+	maxDistanceMeters: Int
+	ipAllowlist: String
+}
+
+input UpsertHolidayCalendarInput {
+	id: ID
+	name: String!
+	year: Int!
+	locationId: ID
+}
+
+input UpsertHolidayDayInput {
+	calendarId: ID!
+	id: ID
+	holidayDate: NaiveDate!
+	name: String!
+	holidayType: String
+}
+
+input UpsertTimesheetLockPolicyInput {
+	editableWeekSpan: Int!
+	lockApprovedEntries: Boolean!
+}
+
+"""
+Directs the executor to include this field or fragment only when the `if` argument is true.
+"""
+directive @include(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+"""
+Directs the executor to skip this field or fragment when the `if` argument is true.
+"""
+directive @skip(if: Boolean!) on FIELD | FRAGMENT_SPREAD | INLINE_FRAGMENT
+"""
+Provides a scalar specification URL for specifying the behavior of custom scalar types.
+"""
+directive @specifiedBy(url: String!) on SCALAR
+schema {
+	query: QueryRoot
+	mutation: MutationRoot
+}

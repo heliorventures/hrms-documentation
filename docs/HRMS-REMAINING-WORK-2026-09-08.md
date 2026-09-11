@@ -14,6 +14,16 @@ Preserve all uncommitted work across the separate repositories. Do not auto-comm
 
 ## Recommended continuation order
 
+Attendance update (11 September, implementation in progress): the user approved a configurable
+tenant-local attendance boundary, default 05:00, with future-only changes that preserve the active
+day and history. Missed checkout becomes INCOMPLETE with no invented checkout/worked time; users
+correct the original segment in the existing adjustment flow. The [approved design](superpowers/specs/2026-09-11-configurable-attendance-day-design.md)
+and [implementation ledger](superpowers/reviews/2026-09-11-attendance-day-progress.md) track this work.
+Foundation and backend integration have passed independent reviews; UI integration and final
+review are still underway. This is not deployed or tenant-validated. Migration 0087 is prepared in
+hrms-database and has not been applied. MFA/login remains excluded, and no commit/deployment/live
+write authorization is implied.
+
 Latest user direction (10 September): complete surveys before appraisal/goals/performance.
 All local survey implementation is approved without repeated approval; MFA/login remains
 explicitly excluded. The [survey closure record](../../docs/superpowers/reviews/2026-09-10-survey-release-closure.md)
