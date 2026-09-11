@@ -1,6 +1,6 @@
 # Configurable attendance day: verification record
 
-Status: implementation and final covering checks complete (12 September); final fix scoped re-review pending. This is not a production-readiness or deployment acceptance claim.
+Status: source implementation, local checks and independent review complete (12 September). No open Critical/Important source-review findings. Runtime QA/release gates remain pending; this is not a production-readiness or deployment acceptance claim.
 
 ## Approved behavior
 
@@ -27,13 +27,15 @@ Tenant-local default 05:00, configurable by an authorized administrator for a fu
 | UI GraphQL contracts | Exact local SDL generation passed;258 unique named operations across23 documents | Final Task3 source; no live gateway request |
 | Final integration-fix tests | 21 passed across6 files;18 passed across5 affected page files | Frozen final UI-only wave; overlaps between suites are not added as unique test counts |
 | Final integration-fix typecheck/lint | TypeScript passed;0 introduced lint findings | 3 duration-helper eqeqeq findings exactly match pre-wave baseline; earlier disclosed lint debt remains |
-| Final integrated review | Two Important findings implemented and tested; no Critical | Canonical row durations and UI/backend calendar-day deadlines; scoped re-review pending |
+| Final integrated review | Both Important findings closed; no Critical/Important findings remain | Final scoped reviewer confirmed canonical row durations and calendar-day deadlines, with no new breakage |
 
 Exact commands, RED/GREEN output and local build/environment caveats are in the [foundation report](2026-09-11-attendance-day-task1-report.md) and [backend report](2026-09-11-attendance-day-task2-report.md). Independent reviews and scoped re-reviews resolved all Task1/2 findings; there are no parked findings from those tasks.
 
 UI commands, baseline comparisons and regression output are in the [UI report](2026-09-11-attendance-day-task3-report.md). The five initial Important UI findings have implementation fixes and covering test evidence; [scoped re-review](2026-09-11-attendance-day-task3-rereview.md) confirmed all addressed with no new breakage. Inherited React Router future-flag warnings remain in tests. Root `git diff --check` passed in all four repositories; Git emitted line-ending notices, not whitespace errors.
 
 The [whole-feature review](2026-09-11-attendance-day-final-review.md) found two additional integration omissions in previously unchanged dependencies. The [final UI-only fix report](2026-09-11-attendance-day-final-fix-report.md) records their RED/GREEN evidence and exact commands. It uses existing trusted tenant timezone metadata and canonical segment timestamps; it does not change backend adjustment deadlines or require another schema change. Earlier suites are scoped to their recorded source boundary; the final21/18 runs cover the amended code. The reviewed source consists of the original whole-feature package plus the final scoped fix diff.
+
+The [final scoped re-review](2026-09-11-attendance-day-final-rereview.md) closed both findings with no new breakage. Final tracked `git diff --check` passed in all four repositories, and service/UI/database HEADs still match the recorded starting commits. All source remains available for manual review; no commit or cleanup was performed.
 
 ## Release and runtime gates still required
 

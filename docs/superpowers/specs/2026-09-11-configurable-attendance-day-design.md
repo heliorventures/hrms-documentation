@@ -1,6 +1,6 @@
 # Configurable attendance day
 
-Status: approved by user on 11 September 2026; implementation in progress.
+Status: approved by user on 11 September 2026; local implementation and independent review complete on 12 September. Runtime QA/release remains pending; see the final verification record.
 
 ## Confirmed requirements
 

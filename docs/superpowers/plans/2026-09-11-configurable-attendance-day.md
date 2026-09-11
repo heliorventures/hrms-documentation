@@ -71,5 +71,5 @@ assert_eq!(previous.ends_at, next.starts_at);
 ## Task 4: Independent integration review and handoff
 
 - [x] Review spec compliance and quality after each task using its report and exact scoped diff, without repeated builds on unchanged code. Fix concrete findings with covering regression tests.
-- [ ] Final review checks multi-tenant locks, historical activation semantics, no credit on expiry, adjustment authority, API compatibility, UI stale-state ownership, payroll/report grouping and migration ownership.
-- [ ] Record final commands/results and unresolved runtime acceptance in a final verification record; update the remaining-work handoff. Leave existing dirty files and all changes available for manual review; no commits or cleanup that removes evidence.
+- [x] Final review checks multi-tenant locks, historical activation semantics, no credit on expiry, adjustment authority, API compatibility, UI stale-state ownership, payroll/report grouping and migration ownership.
+- [x] Record final commands/results and unresolved runtime acceptance in a final verification record; update the remaining-work handoff. Leave existing dirty files and all changes available for manual review; no commits or cleanup that removes evidence.
