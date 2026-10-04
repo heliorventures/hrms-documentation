@@ -20,8 +20,8 @@ Tenant-local default 05:00, configurable by an authorized administrator for a fu
 | Worker production check | Passed without warnings | Before shared proposal refactor; worker interfaces unchanged |
 | Shared preview/save proposal | 18 policy tests passed without warnings | Latest backend review fix, includes bootstrap/revision/frozen/preview agreement |
 | Real local SDL export | Passed | Public contracts unchanged by subsequent policy-only refactor |
-| UI affected regression suite | 90 passed across12 files | After all behavioral fixes, before final hook-only complexity extraction/test grouping |
-| UI final covering regression suite | 45 passed across5 files,exit0 | After final extraction/test grouping; no later source edits |
+| UI affected regression suite | 90 passed across12 files | After Task3 behavioral fixes, before its final hook-only extraction/test grouping and later integration fix wave |
+| UI Task3 covering regression suite | 45 passed across5 files,exit0 | After Task3 extraction/test grouping; later integration-wave changes covered by21/18 runs below |
 | UI TypeScript | Passed,exit0 | Final Task3 source |
 | UI scoped lint | New/non-baseline set passed;26 residual metrics versus29 pre-fix and34 HEAD | Existing Admin/Manual/test debt remains; one new Admin component complexity metric disclosed |
 | UI GraphQL contracts | Exact local SDL generation passed;258 unique named operations across23 documents | Final Task3 source; no live gateway request |
