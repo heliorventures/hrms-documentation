@@ -68,7 +68,7 @@ Still useful in parallel where cheap: **§10.1** parity items (1)–(5); **§11.
 | **`src/api/documents/clientOperations.graphql`** | ✅ added | JWT-oriented operations; keep `moduleProbes.graphql` shallow for health probes. |
 | **`npm run codegen`** (`kabipay-ui`) | ✅ done (when stack is up) | **2026-04-24:** Renamed duplicate operation names, `Date` → `NaiveDate` in upcoming-holiday ops; rebuild subgraphs for full introspection. **2026-04-28:** Merged schema failed if **`payroll-run.graphql`** redefined **`CreatePayrollCycleInput`** with **`Date`** while the gateway has **`NaiveDate`** — **remove duplicate input/mutation** from extension when the supergraph provides them. **M31:** **`workflow-admin.graphql`** removed once **gateway** exposes **`createWorkflow`**. **M32 follow-up:** **`backlog-catchup`** expense **`extend`** trims removed (**`Expense`** + **`SubmitExpenseInput`**). **`schema` =** gateway URL + **`backlog-catchup.graphql`** (payroll arrear placeholders + workflow step list shims until full gateway parity) + **`payroll-run.graphql`** + **`tax-admin.graphql`**. `src/api/graphql/**` is **ESLint-ignored** (codegen output). **2026-04-29:** After **`kabipay-ops`** gateway refresh, **`npm run codegen`** + **`tsc --noEmit`** green; **ops** routes use **`opsGraph.ts`** (still excluded in **`codegen.ts`**). |
 | **ESLint / Prettier (`npm run lint`)** | ✅ done | Prettier normalize + ESLint: `max-lines-per-function` cap raised to 360, context hooks on `allowExportNames`, hook dependency fixes, `prefer-destructuring` fixes. |
-| **Tenant DB — migrations after provision** | ✅ **catch-up script** | Run `.\kabipay-svc\scripts\update-tenant-liquibase.ps1 -Schema tenant_342205fc` when new tenant changeSets ship (e.g. **`0033-002`** **`travel_request.rejected_by`**, **M34**). Includes **`0032` `attendance_punch_policy`**, **`0033` `travel_request`**, etc. Then **`seed-demo-data.ps1`** (idempotent). Re-seed after **0005-007** for demo `permission_scope` rows. |
+| **Tenant DB — migrations after provision** | ✅ **catch-up script** | Run `.\kabipay-svc\scripts\reusable\migrations\update-tenant-liquibase.ps1 -Schema tenant_342205fc` when new tenant changeSets ship (e.g. **`0033-002`** **`travel_request.rejected_by`**, **M34**). Includes **`0032` `attendance_punch_policy`**, **`0033` `travel_request`**, etc. Then **`seed-demo-data.ps1`** (idempotent). Re-seed after **0005-007** for demo `permission_scope` rows. |
 | **GitHub org — split repositories** | ✅ done (2026-04-24) | Four remotes under `https://github.com/KabiPay/`: `kabipay-database`, `kabipay-svc`, `kabipay-gateway`, `kabipay-ui` (`main` pushed). Workspace-only files (`STATUS.md`, `ROADMAP.md`, `KABIPAY_AI_PROMPT.md`, `hrms_erd_complete.md`, `kabipay.code-workspace`) are **not** in those repos by design. |
 | **Punch — WGS84 GPS (browser)** | ✅ done (2026-04-24) | `punchToday(input: PunchTodayInput)` optional lat/lng → `attendance.check_in_*` / `check_out_*` (columns already in §0010-010). `source` = `WEB+GPS` when set. UI: **Record GPS location** checkbox on dashboard `PunchInOut`. Re-run `npm run codegen` after schema refresh. |
 | **Admin — create / edit employee** | ✅ wired (2026-04-24) | `/admin/employees` → **Add Employee** (`createEmployee`) + **Edit** (`updateEmployee`: names, status, employment type, department, designation). Employee code + DOJ not on `UpdateEmployeeInput`. |
@@ -116,7 +116,7 @@ D:\work\KabiPay\
 | PostgreSQL 16 (e.g. Aiven) | `POSTGRES_HOST` / `POSTGRES_PORT` in `kabipay-database/.env` and/or `kabipay-svc/.env` (e.g. `defaultdb`, `avnadmin`, TLS) | — | Ops migrations: `cd kabipay-database` → `npm run migrate-ops`. No Docker for the database in this repo. |
 | pgAdmin (local install) | Connect to the same host/port as those env files (with SSL if required) | — | — |
 | Liquibase **ops** plane | schema `kabipay_ops` in `kabipay_dev` | ✅ applied (31 changesets) | See §2 |
-| Liquibase **tenant** plane — demo tenant | schema `tenant_342205fc` (derived from `-Code demo`) | ✅ applied (**142** tenant changeSets incl. **`0033-002`**; re-run `update-tenant-liquibase.ps1` to match) | Provisioned via `kabipay-svc\scripts\provision-tenant.ps1 -Name 'Demo Co' -Code demo`. Seed data via `seed-demo-data.ps1`. |
+| Liquibase **tenant** plane — demo tenant | schema `tenant_342205fc` (derived from `-Code demo`) | ✅ applied (**142** tenant changeSets incl. **`0033-002`**; re-run `update-tenant-liquibase.ps1` to match) | Provisioned via `kabipay-svc\scripts\reusable\provisioning\provision-tenant.ps1 -Name 'Demo Co' -Code demo`. Seed data via `seed-demo-data.ps1`. |
 | `kabipay-auth` (REST) | `KABIPAY_AUTH_PORT` (default **4001** in `main.rs` if env unset) | ✅ | Client + ops **login / refresh / logout**, Argon2id, shared JWT, refresh in `user_session` / `operator_session`. Client access tokens include **`employee_id`** when the user is linked to `employee.user_id`. **UI:** `kabipay-ui/public/config.json` `authUrl` must match. |
 | **18** GraphQL processes (**`kabipay-ops`** **4010** + tenant **4013–4029**) | http://127.0.0.1:**4010**, **4013–4029**/graphql | ✅ | **Ops** unified on **4010**; tenant modules unchanged. Reads + **writes** where implemented (**analytics** **4029**). |
 | Stitching gateway (`kabipay-gateway`) | http://127.0.0.1:4009/graphql | ✅ | Forwards **`Authorization`**, **`x-tenant-id`**, and (when present) **`x-forwarded-for`** / **`x-real-ip`** to subgraphs. |
@@ -372,10 +372,10 @@ Each step is standalone. Stop at any point and update this file.
 
 ```powershell
 Set-Location D:\work\KabiPay
-powershell -ExecutionPolicy Bypass -File .\kabipay-svc\scripts\provision-tenant.ps1 -Name 'Demo Co' -Code demo
+powershell -ExecutionPolicy Bypass -File .\kabipay-svc\scripts\reusable\provisioning\provision-tenant.ps1 -Name 'Demo Co' -Code demo
 # Creates tenant_342205fc schema, upserts kabipay_ops.tenant / tenant_database rows,
 # runs Liquibase tenant changelog (count grows with new domains; see tenant.changelog-master.xml).
-powershell -ExecutionPolicy Bypass -File .\kabipay-svc\scripts\seed-demo-data.ps1 `
+powershell -ExecutionPolicy Bypass -File .\kabipay-svc\scripts\reusable\provisioning\seed-demo-data.ps1 `
     -TenantId 342205fc-98b1-5421-8a11-b30821c86aa0 -Schema tenant_342205fc
 # Inserts Engineering / Software Engineer / demo user / Demo Employee rows (all deterministic UUIDs).
 ```
@@ -402,7 +402,7 @@ powershell -ExecutionPolicy Bypass -File .\kabipay-svc\scripts\seed-demo-data.ps
 
 ### 7.5 Extend `seed-demo-data.ps1` ✅ DONE (2026-04-23)
 
-`kabipay-svc\scripts\seed-demo-data.ps1` now seeds one deterministic row per domain across both planes, idempotently (`ON CONFLICT DO NOTHING`):
+`kabipay-svc\scripts\reusable\provisioning\seed-demo-data.ps1` now seeds one deterministic row per domain across both planes, idempotently (`ON CONFLICT DO NOTHING`):
 
 - Tenant plane: `leave_type` (x2) + `leave_request`, `shift` (x2) + `attendance`, `salary_component` (x2) + `payroll_cycle`, `tax_configuration_version` + `tax_slab` (x2), `benefit_type` + `benefit_plan`, `expense_category` + `expense`, `job_posting` + `application`, `review_cycle` + `goal`, `skill` + `course`, `competency` + `talent_pool`, `salary_band` + `compensation_review_cycle`, `asset_category` + `asset`, `grievance_category` + `grievance_case`, `workflow` + `workflow_instance`, `announcement` + `notification`.
 - Ops plane (`kabipay_ops`): 4 modules (`EMPLOYEE`, `LEAVE`, `PAYROLL`, `RECRUITMENT`), 2 tenant subscriptions, current-month `billing_cycle`, 1 pending `invoice`, 1 succeeded `payment`, 2 operator roles (`ADMIN`, `SUPPORT`), 1 operator user.
@@ -438,7 +438,7 @@ Smoke test: run `npm run dev` in `kabipay-gateway/` + `kabipay-ui/`, then open `
 | Notification | `markNotificationRead`, `markAllNotificationsRead` |
 | Employee | `documentTypes`, `employeeDocuments`, `createEmployee`, `updateEmployee` |
 
-**Database:** new tenant changeSet **`0010-012-create-timesheet-entry`** (`timesheet_entry` table). **Existing** demo schemas must run **`kabipay-svc\scripts\update-tenant-liquibase.ps1 -Schema tenant_342205fc`** (or your schema) so Liquibase applies pending changeSets, then restart `kabipay-attendance`.
+**Database:** new tenant changeSet **`0010-012-create-timesheet-entry`** (`timesheet_entry` table). **Existing** demo schemas must run **`kabipay-svc\scripts\reusable\migrations\update-tenant-liquibase.ps1 -Schema tenant_342205fc`** (or your schema) so Liquibase applies pending changeSets, then restart `kabipay-attendance`.
 
 ### 7.10 Punch GPS + admin/travel UI (2026-04-24) ✅
 

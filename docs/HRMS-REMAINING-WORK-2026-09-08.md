@@ -2,25 +2,40 @@
 
 Prepared: 8 September 2026. Workspace: `D:\work\heliorventures`.
 
-## Read this first tomorrow
+## Current direction — 22 September 2026
+
+The user confirmed that runtime acceptance, migrations and release validation for the already-implemented features are **done**. This supersedes the earlier pending-release statements below for those features; it is user-confirmed completion, not a rerun by this review. Keep historical evidence for context, but do not restart release preparation as the next task.
+
+Implementation is the priority. The September 20 goal correction/manager creation and acknowledgement safeguards are present in the current checkout. The newly approved scope covers seven performance workflows: HR calibration, audited reopen/resubmit, participant exclusions and exceptions, private HR feedback, program archive, population/KPI management, and deadline-driven stage transitions. Follow the [September 22 plan](superpowers/plans/2026-09-22-performance-completion.md) and [execution ledger](../../docs/superpowers/reviews/2026-09-22-performance-completion-progress.md), not the older gap descriptions, for current implementation status.
+
+Source implementation and targeted source review are complete for these seven new performance workflows. They have not been validated by running tests, lint, typechecks, builds or migrations; broader integration/concurrency coverage remains open. The user owns execution of the [validation commands and role journeys](superpowers/reviews/2026-09-22-performance-validation-handoff.md). This is separate from the user-confirmed acceptance of previously implemented features. Production statutory payroll remains open pending jurisdiction, effective period, calculation/filing scope and approved reference cases; simplified/stub outputs must not be described as production statutory processing.
+
+Comp-off decision D1 is resolved and entitlement implementation already exists. The older suggested restart message and security implementation ordering below are historical, not current instructions. MFA/login/recovery remains excluded; optional new subsystems retain separate scope boundaries.
+
+## Historical handoff — superseded release status
+
+The following September 8–12 narrative and checklists preserve the earlier evidence. Their pending runtime, migration and release statements are superseded by the September 20 user confirmation above; they are not the current task queue. Use the linked agent backlog and execution ledger for new implementation work.
 
 The original enhancements largely have source implementations. Most remaining work is release validation and deployment preparation. Comp-off decision D1 was resolved by the user and recorded on 10 September 2026 below. The pasted reviewer report predates several changes: do not restart unpaid leave, comp-off, video, reports or pre-joining from scratch.
 
 This handoff was checked against current source and the verification records from today's work. No new tests, builds, migrations, live requests, emails or deployment were run for this documentation review. Earlier passing results are identified as recorded evidence, not freshly rerun results. The broader product-depth list was checked at entry-point level; it is not a full audit of every workflow.
 
-The project's [completion rule](../hrms-documentation/docs/module-completion-status.md) requires role-specific browser journeys, real service/database integration, applied migrations and storage verification. These are still missing for the changed features, so **source implemented / QA pending** is the correct status. This does not establish that every existing module is broken or missing.
+The project's [completion rule](module-completion-status.md) requires role-specific browser journeys, real service/database integration, applied migrations and storage verification. These are still missing for the changed features, so **source implemented / QA pending** is the correct status. This does not establish that every existing module is broken or missing.
 
 Preserve all uncommitted work across the separate repositories. Do not auto-commit, deploy, apply migrations, send emails or modify live tenant data. Do not run Dart/Flutter. Ask before new token-expensive work; existing approvals covered today's scoped implementation checks and builds. This document does not authorize implementation of every optional enhancement below.
 
 ## Recommended continuation order
 
-Attendance update (11 September, implementation in progress): the user approved a configurable
+Attendance update (12 September, source implemented/local review complete; runtime QA pending): the user approved a configurable
 tenant-local attendance boundary, default 05:00, with future-only changes that preserve the active
 day and history. Missed checkout becomes INCOMPLETE with no invented checkout/worked time; users
 correct the original segment in the existing adjustment flow. The [approved design](superpowers/specs/2026-09-11-configurable-attendance-day-design.md)
 and [implementation ledger](superpowers/reviews/2026-09-11-attendance-day-progress.md) track this work.
-Foundation and backend integration have passed independent reviews; UI integration and final
-review are still underway. This is not deployed or tenant-validated. Migration 0087 is prepared in
+Foundation, backend and UI integration have passed independent reviews. Final review fixes also
+cover canonical overnight/DST row durations and tenant-calendar adjustment deadlines without
+changing employee authority. See the [final verification record](superpowers/reviews/2026-09-11-attendance-day-final-verification.md)
+for scoped test evidence and remaining PostgreSQL/gateway/browser acceptance gates.
+This is not deployed or tenant-validated. Migration 0087 is prepared in
 hrms-database and has not been applied. MFA/login remains excluded, and no commit/deployment/live
 write authorization is implied.
 
@@ -70,22 +85,22 @@ remain outstanding. Do not rebuild these survey features from the older D5 absen
 - [x] Selecting Comp-off reserves and consumes only comp-off credit. Missing configuration or insufficient credit must not fall back to normal leave balances.
 - [x] Rejection/pending cancellation releases the reservation with its original expiry. Release after expiry does not make the credit spendable again. Existing restrictions for cancellation of already-approved leave remain unchanged.
 
-The inspected reservation/final-approval paths already follow this decision. See the [10 September continuation record](superpowers/reviews/2026-09-10-compoff-release-security.md) for new regression evidence and the scoped entitlement audit. Runtime acceptance remains pending.
+The inspected reservation/final-approval paths already follow this decision. See the [10 September continuation record](../../docs/superpowers/reviews/2026-09-10-compoff-release-security.md) for new regression evidence and the scoped entitlement audit. Runtime acceptance remains pending.
 
 ## B. Reconciliation of the other reviewer's findings
 
 | Reviewer claim | Current verdict and evidence | What belongs in the remaining backlog |
 |---|---|---|
 | No module can be marked fully complete | Missing release evidence supports withholding Complete for these changed flows. It is not proof that every existing module lacks implementation. See the project's completion rule. | Capture runtime evidence per module. |
-| Phase1 core exists; lint/route/browser work remains | Partly current. [Phase1 verification](superpowers/reviews/2026-09-08-phase1-verification.md) records later UI checks than the pasted 28-test snapshot. Later route/navigation/export checks passed with a 30-second timeout. | Browser acceptance and lint closure remain. Default full-suite timing stability is not established by scoped timeout-adjusted passes. |
-| Birthday/anniversary notifications fail compilation with six missing symbols and need all layers built | The reported missing-symbol state is superseded by today's recorded 39 passing notification tests and successful notification/outbox Cargo check. [Settings](../hrms-svc/crates/kabipay-notification/src/services/automation_settings.rs), [generation](../hrms-svc/crates/kabipay-notification/src/services/automated_events.rs), worker calls, Admin settings and employee consent UI now exist. | Validate migration0074, configuration/consent, recipient selection, tenant-local scheduling, retries and duplicate prevention in the running worker. Do not recreate existing layers. |
-| Subscription/feature-flag enforcement | The former unused pass-through has been removed. Approved shared GraphQL, capability-route, report and worker enforcement is now present locally; verification is recorded in the [10 September entitlement record](superpowers/reviews/2026-09-10-module-entitlements.md). | Complete authorized runtime acceptance. Local source/tests do not prove deployed subscription enforcement. See D2 below. |
-| Unpaid leave and comp-off are essentially missing | Outdated. Services, policies, ledgers, UI, reports and migrations0077/0078 exist. [Phase2 final notes](superpowers/reviews/2026-09-08-phase2-payroll.md). | Runtime QA using resolved D1 and deployment. |
-| Reports use capped client lists; insights are only succession catalogues | Outdated for the new HR report/insight paths. [Phase4 verification](superpowers/reviews/2026-09-08-phase4-ui.md), [report service](../hrms-svc/crates/kabipay-analytics/src/services/hr_reports.rs), and [insights page](../hrms-ui/src/modules/insights/AnalyticsPage.tsx). | Live data reconciliation, export scaling and optional saved/scheduled reports. Do not assume every legacy export elsewhere was audited. |
-| Video and pre-joining are absent; attachment limits prevent them | Outdated. Video has a dedicated media path; the older generic attachment limit does not describe it. Pre-joining has a separate private document/form path. | Runtime/storage/proxy/email acceptance, migrations0079/0080. See [video review](superpowers/reviews/2026-09-08-phase3-video-ui.md) and [pre-joining review](superpowers/reviews/2026-09-08-prejoining-ui.md). |
+| Phase1 core exists; lint/route/browser work remains | Partly current. [Phase1 verification](../../docs/superpowers/reviews/2026-09-08-phase1-verification.md) records later UI checks than the pasted 28-test snapshot. Later route/navigation/export checks passed with a 30-second timeout. | Browser acceptance and lint closure remain. Default full-suite timing stability is not established by scoped timeout-adjusted passes. |
+| Birthday/anniversary notifications fail compilation with six missing symbols and need all layers built | The reported missing-symbol state is superseded by today's recorded 39 passing notification tests and successful notification/outbox Cargo check. [Settings](../../hrms-svc/crates/kabipay-notification/src/services/automation_settings.rs), [generation](../../hrms-svc/crates/kabipay-notification/src/services/automated_events.rs), worker calls, Admin settings and employee consent UI now exist. | Validate migration0074, configuration/consent, recipient selection, tenant-local scheduling, retries and duplicate prevention in the running worker. Do not recreate existing layers. |
+| Subscription/feature-flag enforcement | The former unused pass-through has been removed. Approved shared GraphQL, capability-route, report and worker enforcement is now present locally; verification is recorded in the [10 September entitlement record](../../docs/superpowers/reviews/2026-09-10-module-entitlements.md). | Complete authorized runtime acceptance. Local source/tests do not prove deployed subscription enforcement. See D2 below. |
+| Unpaid leave and comp-off are essentially missing | Outdated. Services, policies, ledgers, UI, reports and migrations0077/0078 exist. [Phase2 final notes](../../docs/superpowers/reviews/2026-09-08-phase2-payroll.md). | Runtime QA using resolved D1 and deployment. |
+| Reports use capped client lists; insights are only succession catalogues | Outdated for the new HR report/insight paths. [Phase4 verification](../../docs/superpowers/reviews/2026-09-08-phase4-ui.md), [report service](../../hrms-svc/crates/kabipay-analytics/src/services/hr_reports.rs), and [insights page](../../hrms-ui/src/modules/insights/AnalyticsPage.tsx). | Live data reconciliation, export scaling and optional saved/scheduled reports. Do not assume every legacy export elsewhere was audited. |
+| Video and pre-joining are absent; attachment limits prevent them | Outdated. Video has a dedicated media path; the older generic attachment limit does not describe it. Pre-joining has a separate private document/form path. | Runtime/storage/proxy/email acceptance, migrations0079/0080. See [video review](../../docs/superpowers/reviews/2026-09-08-phase3-video-ui.md) and [pre-joining review](../../docs/superpowers/reviews/2026-09-08-prejoining-ui.md). |
 | Appraisals/surveys only have designs; no lifecycle/subgraph | Outdated as an absence claim. Lifecycle services, review mutations, worker integration, migrations0075/0076, UI and survey subgraph now exist. Gateway source includes survey registration/contracts. | Completion against their original specs remains to be verified. Audit actual operation contracts and role/privacy behavior, then runtime test; do not infer lifecycle completeness from file existence. |
-| MFA returns501; self-service reset absent | Confirmed. [Auth handlers](../hrms-svc/crates/kabipay-auth/src/handlers.rs) still call not_implemented for both MFA endpoints. [ForgotPasswordPage](../hrms-ui/src/modules/auth/ForgotPasswordPage.tsx) gives HR/admin reset guidance; it is not a self-service reset-token flow. | MFA implementation; product decision and separate implementation for self-service recovery. Keep working admin reset/change-password behavior. |
-| Statutory payroll is simplified | Confirmed source limitation: [statutory_india](../hrms-svc/crates/kabipay-payroll/src/services/statutory_india.rs) and [payroll service](../hrms-svc/crates/kabipay-payroll/src/services/payroll_service.rs) retain explicitly labelled simplified/stub calculations and export paths. | Specialist-validated rules, effective dating, calculation fixtures and filing/export acceptance. This review checked source limitations, not current law or legal compliance. |
+| MFA returns501; self-service reset absent | Confirmed. [Auth handlers](../../hrms-svc/crates/kabipay-auth/src/handlers.rs) still call not_implemented for both MFA endpoints. [ForgotPasswordPage](../../hrms-ui/src/modules/auth/ForgotPasswordPage.tsx) gives HR/admin reset guidance; it is not a self-service reset-token flow. | MFA implementation; product decision and separate implementation for self-service recovery. Keep working admin reset/change-password behavior. |
+| Statutory payroll is simplified | Confirmed source limitation: [statutory_india](../../hrms-svc/crates/kabipay-payroll/src/services/statutory_india.rs) and [payroll service](../../hrms-svc/crates/kabipay-payroll/src/services/payroll_service.rs) retain explicitly labelled simplified/stub calculations and export paths. | Specialist-validated rules, effective dating, calculation fixtures and filing/export acceptance. This review checked source limitations, not current law or legal compliance. |
 | Broad HR modules are mostly catalogues | Partially supported, but the list is too broad to accept wholesale. Recruitment exposes job-posting setup, compensation exposes cycles/bands, learning setup exposes skills/courses. Benefits already has enrollment; grievances already have submission; performance now has a lifecycle. | Audit missing transitions and role journeys before specifying additions. Keep the concrete review checklist in section E; do not label every workflow absent. |
 
 ## C. Release and QA work still pending
@@ -104,7 +119,7 @@ The inspected reservation/final-approval paths already follow this decision. See
 
 The browser tool failed during bootstrap with unavailable kernel assets. No successful browser connection, screenshots or signed-in acceptance were obtained. Restore that environment or use an approved working browser-test setup.
 
-For pre-joining's exact operational checklist, use [runtime acceptance](superpowers/reviews/2026-09-08-prejoining-runtime-acceptance.md) and [user workflow](superpowers/reviews/2026-09-08-prejoining-user-workflow.md).
+For pre-joining's exact operational checklist, use [runtime acceptance](../../docs/superpowers/reviews/2026-09-08-prejoining-runtime-acceptance.md) and [user workflow](../../docs/superpowers/reviews/2026-09-08-prejoining-user-workflow.md).
 
 ## D. Confirmed additional implementation gaps
 
@@ -112,9 +127,9 @@ These are broader than the original13 enhancements. Scope each before implementa
 
 ### D2 — server-side module entitlements — high priority
 
-- [x] Scoped implementation approved; active core modules need no separate subscription and existing role permissions remain required. The [implementation plan](superpowers/plans/2026-09-10-module-entitlements.md) records subscription dates, deny-flag precedence, dependencies and queued-work handling.
+- [x] Scoped implementation approved; active core modules need no separate subscription and existing role permissions remain required. The [implementation plan](../../docs/superpowers/plans/2026-09-10-module-entitlements.md) records subscription dates, deny-flag precedence, dependencies and queued-work handling.
 - [x] Shared evaluator and actual shared/custom GraphQL, capability HTTP, report and worker call sites implemented locally. The unused placeholder is removed; no long-lived entitlement cache is introduced.
-- [x] Local verification: offline workspace compile and 29 focused common/ops/analytics/media/worker tests passed; independent source review found no blocking defect. See the [verification record](superpowers/reviews/2026-09-10-module-entitlements.md) for warnings and coverage limits.
+- [x] Local verification: offline workspace compile and 29 focused common/ops/analytics/media/worker tests passed; independent source review found no blocking defect. See the [verification record](../../docs/superpowers/reviews/2026-09-10-module-entitlements.md) for warnings and coverage limits.
 - [ ] Authorized runtime acceptance of fail-closed access, revoked/expired subscriptions, tenant isolation, permission-plus-entitlement behavior, queued work and subscription transaction races. Do not treat local implementation as release closure.
 
 ### D3 — MFA and recovery
@@ -131,7 +146,7 @@ These are broader than the original13 enhancements. Scope each before implementa
 
 ### D5 — automation, appraisals and anonymous-survey closure
 
-- [x] Source comparison against the [automation plan](../hrms-documentation/docs/superpowers/plans/2026-09-08-automated-employee-notifications.md), [appraisal plan](../hrms-documentation/docs/superpowers/plans/2026-09-08-performance-feedback-appraisal.md), and [survey plan](../hrms-documentation/docs/superpowers/plans/2026-09-08-anonymous-surveys.md) recorded in the [10 September D5 gap review](superpowers/reviews/2026-09-10-d5-gap-review.md). This comparison does not close implementation or runtime acceptance.
+- [x] Source comparison against the [automation plan](superpowers/plans/2026-09-08-automated-employee-notifications.md), [appraisal plan](superpowers/plans/2026-09-08-performance-feedback-appraisal.md), and [survey plan](superpowers/plans/2026-09-08-anonymous-surveys.md) recorded in the [10 September D5 gap review](../../docs/superpowers/reviews/2026-09-10-d5-gap-review.md). This comparison does not close implementation or runtime acceptance.
 - [ ] Verify actual schema operations, service deployment, migration state, scheduled generation and role-specific UI transitions.
 - [ ] Preserve employee opt-in for company-wide celebrations and tenant enablement; test private delivery when consent is absent.
 - [ ] Complete runtime survey minimum-response suppression and department/team visibility acceptance; results must not identify respondents. Local coverage and current feature closure are tracked in the [survey release record](../../docs/superpowers/reviews/2026-09-10-survey-release-closure.md).
@@ -170,8 +185,8 @@ These are broader than the original13 enhancements. Scope each before implementa
 
 ## F. Documentation corrections
 
-- [ ] Reconcile [FEATURES.md](../hrms-ui/FEATURES.md) with current source. Its missing attendance adjustment, leave cancellation and obsolete expense-form descriptions are stale.
-- [ ] Update the [completion register](../hrms-documentation/docs/module-completion-status.md) with evidence-based statuses. Receipt upload exists, so it is not a reason by itself to keep Expenses/Travel In progress. Confirm remaining role paths before moving the entire module to QA.
+- [ ] Reconcile [FEATURES.md](../../hrms-ui/FEATURES.md) with current source. Its missing attendance adjustment, leave cancellation and obsolete expense-form descriptions are stale.
+- [ ] Update the [completion register](module-completion-status.md) with evidence-based statuses. Receipt upload exists, so it is not a reason by itself to keep Expenses/Travel In progress. Confirm remaining role paths before moving the entire module to QA.
 - [ ] Preserve the distinction between Implemented, QA and runtime Complete. Do not check all acceptance boxes merely because code compiles.
 - [ ] Reconcile older progress prose/unchecked plan lists with later final verification entries. The older value-priorities document still says pre-joining is outstanding; this handoff and the final pre-joining ledger supersede that statement.
 
@@ -181,11 +196,11 @@ These are results from earlier work in this conversation, not reruns performed f
 
 | Area | Latest relevant recorded evidence |
 |---|---|
-| Attendance/Phase1 | Attendance70 tests; later scoped UI coverage recorded in [Phase1 verification](superpowers/reviews/2026-09-08-phase1-verification.md). Browser/lint limits remain explicit. |
-| Payroll/comp-off | Payroll41 and leave46 tests, additional focused regressions, actual-SDL validation and UI build; [Phase2 final notes](superpowers/reviews/2026-09-08-phase2-payroll.md). |
-| Notification video | Notification39 tests; notification/outbox check; Admin16 tests and root video tests; [video review](superpowers/reviews/2026-09-08-phase3-video-ui.md). The old six-missing-symbol compile failure is superseded. |
-| Reports/insights | Analytics13 tests and check, UI/permission53 plus focused integration checks; [report review](superpowers/reviews/2026-09-08-phase4-ui.md). |
-| Pre-joining | Employee59 passed/2 existing S3-environment tests ignored; final focused17; candidate16 plus2 recovery checks; Admin10; root route/navigation/export40; permission52;13 operations validated against actual SDL. [Final ledger](superpowers/reviews/2026-09-08-prejoining-progress.md). |
+| Attendance/Phase1 | Attendance70 tests; later scoped UI coverage recorded in [Phase1 verification](../../docs/superpowers/reviews/2026-09-08-phase1-verification.md). Browser/lint limits remain explicit. |
+| Payroll/comp-off | Payroll41 and leave46 tests, additional focused regressions, actual-SDL validation and UI build; [Phase2 final notes](../../docs/superpowers/reviews/2026-09-08-phase2-payroll.md). |
+| Notification video | Notification39 tests; notification/outbox check; Admin16 tests and root video tests; [video review](../../docs/superpowers/reviews/2026-09-08-phase3-video-ui.md). The old six-missing-symbol compile failure is superseded. |
+| Reports/insights | Analytics13 tests and check, UI/permission53 plus focused integration checks; [report review](../../docs/superpowers/reviews/2026-09-08-phase4-ui.md). |
+| Pre-joining | Employee59 passed/2 existing S3-environment tests ignored; final focused17; candidate16 plus2 recovery checks; Admin10; root route/navigation/export40; permission52;13 operations validated against actual SDL. [Final ledger](../../docs/superpowers/reviews/2026-09-08-prejoining-progress.md). |
 | Final assembled UI | TypeScript, scoped pre-joining/route/navigation lint and production build passed. Existing Browserslist-age/large shared-chunk warnings remain; whole-repo lint was not claimed clean. |
 | Gateway/database older counts in pasted review | Historical evidence only. They are not a newly executed full-system gate for the final checkout. |
 

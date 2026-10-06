@@ -142,3 +142,7 @@ Implementation includes the conversion utility, reusable importer, required payr
 Pending operator inputs are explicit CLI/configuration requirements: actual tenant/database identity, effective salary date, leave as-of date, preserved-account matches, new login manifest and write-pause/backup paths. Client corrections or deduction reasons are tracked as issues rather than replaced with guesses.
 
 No live reset, import, September payroll generation, payment, deployment, automatic commit or test/build execution is authorized merely by approval of this written design.
+
+## Confirmed implementation amendments - 4 October 2026
+
+The user subsequently delegated local tests/builds and selected source joining dates for salary effectiveness, a provisional 31 August 2026 leave cutoff and September 2026 payroll. The September-only explicit blank formula-input policy is approved, logged and preserves source states; NA/errors and future eligibility are unresolved. Advance is settlement rather than a salary component or deduction. Company HR/Admin controls displayed components and employer contributions start hidden. Imported nullable profile dates and holder/branch are visible through existing employee-target access control. Actual tenant execution, deployment and payroll generation remain separate operator actions. See the dated validation handoff for evidence and remaining client data gaps.

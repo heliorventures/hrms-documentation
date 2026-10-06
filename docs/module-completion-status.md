@@ -2,6 +2,12 @@
 
 This is the one-module-at-a-time completion register for the HRMS product.
 
+## 20 September 2026 status update
+
+The user confirms runtime acceptance, migrations and release validation are complete for the features already implemented in the remaining-work handoff. Earlier pending-runtime wording below is historical for that scope. This confirmation does not imply that optional unimplemented workflows or new changes are complete. The current [implementation ledger](../../docs/superpowers/reviews/2026-09-20-performance-progress.md) tracks performance goal correction, acknowledgement/closure and permission-service quality work.
+
+Expense receipt upload is implemented in the live `SubmitExpenseModal`, mounted by `ExpensesPage`; it is not a missing implementation blocker. The queue below predates that implementation and must not be used to request rebuilding it. Whole-module completion still requires the completion rule and no known blocking gaps.
+
 ## Completion rule
 
 A module may be marked **Complete** only when all of the following are verified:

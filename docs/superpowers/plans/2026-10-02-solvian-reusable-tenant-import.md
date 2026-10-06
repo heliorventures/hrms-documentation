@@ -200,3 +200,9 @@ This plan covers one coordinated import-to-payslip delivery; tasks share a singl
 Recommended method: **native execution in this session**, because interfaces and transactions span the three domains and it avoids repeated worker contexts. A final independent review is required before reporting implementation ready. If the user chooses agents, use the mandated dedicated Luna summariser for logs/history before any Astra review and supply only narrowly selected source; do not spawn agents before that method is selected.
 
 Approval of this plan authorizes the chosen implementation workflow, not live client-schema operations. Tests/builds and live execution keep their separate user ownership. Remaining unknown client fields are visible issues/operator inputs, not new approval gates for routine implementation decisions.
+
+## Implementation status - 4 October 2026
+
+The historical unchecked lists above are the original implementation plan, not the current status. The user delegated local tests/builds during execution. Tasks 1-9 now have implemented converter, storage, domain services, guarded native importer/reset, company presentation and HR monthly-editor paths. Task 10 operator instructions and independent review handoff are complete; changed-code checks passed and are recorded in the ledger and [validation handoff](../reviews/2026-10-02-solvian-import-validation-handoff.md). No live acceptance is implied.
+
+Rulings: use the existing transaction domain APIs rather than legacy roster scripts; keep one database README and grouped reusable/client/test folders; preview linked sections as explicit RECONCILE actions rather than simulating domain writes; retain unknown optional source values and period-specific provenance; render/export only after company display settings resolve; imported salary commencement at any point in the month requires reviewed period input. Existing staged/unrelated changes are preserved, and no commits are created.
