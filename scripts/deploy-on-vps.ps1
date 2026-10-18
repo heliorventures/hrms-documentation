@@ -8,7 +8,8 @@
     create/update the Caddyfile, load uploaded image archives, and run
     docker compose on the VPS.
 
-    With -SyncEnvExample, the script uploads .env.example and reconciles
+    With -SyncEnvExample, the script uploads deploy/.env as restricted staging
+    input (.env.example on the VPS) and reconciles
     /opt/apps/.env by adding missing defaults and preserving existing values.
     A restricted timestamped backup is retained. The private Finance secret
     is generated on the VPS only when missing; existing secrets are never
@@ -81,7 +82,7 @@ $ErrorActionPreference = 'Stop'
 
 $ProjectDocumentationDir = Split-Path -Parent $PSScriptRoot
 $ComposeTemplate = Join-Path $ProjectDocumentationDir 'deploy/docker-compose.prod.yml'
-$EnvExample = Join-Path $ProjectDocumentationDir 'deploy/.env.example'
+$EnvFile = Join-Path $ProjectDocumentationDir 'deploy/.env'
 $CaddyfileTemplate = Join-Path $ProjectDocumentationDir 'deploy/Caddyfile.example'
 
 $PublicBaseUrl = $PublicBaseUrl.TrimEnd('/')
@@ -233,8 +234,8 @@ if (-not (Test-Path $ComposeTemplate)) {
     throw "Missing compose template: $ComposeTemplate"
 }
 
-if (-not (Test-Path $EnvExample)) {
-    throw "Missing env example: $EnvExample"
+if (-not (Test-Path -LiteralPath $EnvFile -PathType Leaf)) {
+    throw "Missing local environment file: $EnvFile"
 }
 
 if ($Deploy) {
@@ -267,6 +268,7 @@ $TagQ = Quote-Sh $Tag
 $PublicBaseUrlQ = Quote-Sh $PublicBaseUrl
 $ApiBaseUrlQ = Quote-Sh $ApiBaseUrl
 $TenantIdQ = Quote-Sh $TenantId.ToLowerInvariant()
+$RemoteEnvExamplePathQ = Quote-Sh $RemoteEnvExamplePath
 $RemoteEnvReconcileScriptPathQ = Quote-Sh $RemoteEnvReconcileScriptPath
 $RemoteTenantTargetScriptPathQ = Quote-Sh $RemoteTenantTargetScriptPath
 $RemoteValidationScriptPathQ = Quote-Sh $RemoteValidationScriptPath
@@ -582,8 +584,9 @@ echo "==> Deployment validation passed"
     Copy-ToRemote "Uploading environment preparation script" $EnvReconcileScriptPath $RemoteEnvReconcileScriptPath
 
     if ($SyncEnvExample) {
-        Copy-ToRemote "Uploading .env.example" $EnvExample $RemoteEnvExamplePath
-        Invoke-Remote "Reconciling remote .env from .env.example" "set -eu; bash $RemoteEnvReconcileScriptPathQ $AppDirQ $TagQ"
+        Invoke-Remote "Restricting environment upload permissions" "set -eu; umask 077; touch $RemoteEnvExamplePathQ; chmod 0600 $RemoteEnvExamplePathQ"
+        Copy-ToRemote "Uploading local deploy/.env as reconciliation input" $EnvFile $RemoteEnvExamplePath
+        Invoke-Remote "Reconciling remote .env from uploaded defaults" "set -eu; chmod 0600 $RemoteEnvExamplePathQ; bash $RemoteEnvReconcileScriptPathQ $AppDirQ $TagQ"
     }
 
     if ($Up) {

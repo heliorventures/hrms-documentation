@@ -135,9 +135,9 @@ test('deploy requires preflight before container restart and validates propagate
   const start = deploy.indexOf('"Starting KabiPay containers with docker compose"');
   assert.ok(preflight > 0 && preflight < start, 'Finance must be validated before docker compose up');
   assert.match(deploy, /bash "\$APP_DIR\/config\/kabipay-reconcile-env\.sh" "\$APP_DIR" "\$TAG" --check-container/);
-  const template = fs.readFileSync(path.join(root, 'deploy/.env.example'), 'utf8');
-  assert.match(template, /^KABIPAY_FINANCE_SERVICE_SECRET=\r?$/m);
-  for (const key of ['EMPLOYEE', 'PAYROLL']) assert.match(template, new RegExp(`^KABIPAY_FINANCE_${key}_URL=http://`, 'm'));
+  assert.match(deploy, /\$EnvFile = Join-Path \$ProjectDocumentationDir 'deploy\/\.env'/);
+  assert.match(deploy, /Copy-ToRemote "Uploading local deploy\/\.env as reconciliation input" \$EnvFile \$RemoteEnvExamplePath/);
+  assert.match(deploy, /umask 077; touch \$RemoteEnvExamplePathQ; chmod 0600 \$RemoteEnvExamplePathQ/);
 });
 
 test('container validation detects missing or mismatched Finance propagation without printing values', () => run(`
