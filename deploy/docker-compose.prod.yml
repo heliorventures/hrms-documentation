@@ -159,6 +159,7 @@ services:
     container_name: kabipay-ui
     volumes:
       - ./config/ui-config.json:/usr/share/nginx/html/config.json:ro
+      - ./media/video-guides:/srv/video-guides:ro
     expose:
       - "80"
     restart: unless-stopped
