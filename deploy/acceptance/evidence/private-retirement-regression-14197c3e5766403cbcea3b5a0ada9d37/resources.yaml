@@ -1,0 +1,17 @@
+services:
+  postgres:
+    mem_limit: 256m
+    cpus: 0.5
+  kafka:
+    mem_limit: 640m
+    cpus: 1.0
+    environment:
+      KAFKA_HEAP_OPTS: -Xms256m -Xmx256m
+  clickhouse:
+    mem_limit: 1536m
+    cpus: 1.0
+  connect:
+    mem_limit: 896m
+    cpus: 1.0
+    environment:
+      KAFKA_HEAP_OPTS: -Xms384m -Xmx384m

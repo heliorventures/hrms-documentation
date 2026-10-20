@@ -1,0 +1,3 @@
+2026-10-19T17:07:36.899535668Z DEPRECATED: A Log4j 1.x configuration file has been detected, which is no longer recommended.
+2026-10-19T17:07:36.899558510Z To use a Log4j 2.x configuration, please see https://logging.apache.org/log4j/2.x/migrate-from-log4j1.html#Log4j2ConfigurationFormat for details about Log4j configuration file migration.
+2026-10-19T17:07:36.899562894Z You can also use the $KAFKA_HOME/config/tools-log4j2.yaml file as a starting point. Make sure to remove the Log4j 1.x configuration after completing the migration.

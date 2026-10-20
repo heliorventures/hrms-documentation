@@ -1,0 +1,8 @@
+﻿{"fixture":"isolated-acceptance","exit_code":0,"finished_at":"2026-10-19T17:10:16.0774974Z"}
+{"fixture":"isolated-cdc","exit_code":1,"finished_at":"2026-10-19T17:10:54.4849961Z"}
+{"fixture":"isolated-cdc","exit_code":1,"finished_at":"2026-10-19T17:12:57.8346991Z"}
+{"fixture":"isolated-cdc","exit_code":0,"finished_at":"2026-10-19T17:14:25.2022888Z"}
+{"fixture":"control-cdc-acceptance","exit_code":0,"finished_at":"2026-10-19T17:15:28.9269893Z"}
+{"fixture":"historical-retention-acceptance","exit_code":0,"finished_at":"2026-10-19T17:16:06.5727305Z"}
+{"fixture":"control-cleanup-acceptance","exit_code":0,"finished_at":"2026-10-19T17:17:20.0170295Z"}
+{"fixture":"gap-lifecycle-acceptance","exit_code":0,"finished_at":"2026-10-19T17:20:51.5314738Z"}

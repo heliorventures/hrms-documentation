@@ -1,0 +1,68 @@
+# Shared platform only. Existing /opt/apps project/data/network identity is preserved.
+name: apps
+services:
+  caddy:
+    image: caddy:2.10.2-alpine
+    container_name: caddy
+    ports: ["80:80", "443:443"]
+    volumes:
+      - type: bind
+        source: ${PLATFORM_ROOT:-/opt/apps}/Caddyfile
+        target: /etc/caddy/Caddyfile
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
+        source: ${PLATFORM_ROOT:-/opt/apps}/certs/cloudflare
+        target: /etc/caddy/certs
+        read_only: true
+        bind: {create_host_path: false}
+      - type: bind
+        source: ${HRMS_ROOT:-/opt/apps/hrms}/caddy
+        target: /etc/caddy/hrms
+        read_only: true
+        bind: {create_host_path: false}
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+    networks: [app-network]
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?required}
+      POSTGRES_DB: ${POSTGRES_DB:?required}
+    volumes:
+      - type: bind
+        source: ${PLATFORM_ROOT:-/opt/apps}/data/postgres
+        target: /var/lib/postgresql/data
+        bind: {create_host_path: false}
+    ports: ["127.0.0.1:${POSTGRES_HOST_PORT:-5432}:5432"]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    networks: [app-network, metadata, company_sources]
+  mongo:
+    image: mongo:4.4
+    container_name: mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:?required}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:?required}
+    volumes:
+      - type: bind
+        source: ${PLATFORM_ROOT:-/opt/apps}/data/mongo
+        target: /data/db
+        bind: {create_host_path: false}
+    ports: ["127.0.0.1:27017:27017"]
+    restart: unless-stopped
+    networks: [app-network]
+volumes:
+  caddy_data: {external: true, name: apps_caddy_data}
+  caddy_config: {external: true, name: apps_caddy_config}
+networks:
+  app-network: {external: true, name: "${APP_NETWORK:-apps_app-network}"}
+  metadata: {external: true, name: hrms_metadata}
+  company_sources: {external: true, name: hrms_sources}

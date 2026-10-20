@@ -1,0 +1,722 @@
+﻿
+> @kabipay/organization-events@1.0.0 test
+> node --test test/*.test.mjs
+
+TAP version 13
+# Subtest: acceptance topics resolve only checked company and control EventRouter streams
+ok 1 - acceptance topics resolve only checked company and control EventRouter streams
+  ---
+  duration_ms: 1.6516
+  type: 'test'
+  ...
+# Subtest: synthetic outbox routing DDL comes from the canonical forward migrations
+ok 2 - synthetic outbox routing DDL comes from the canonical forward migrations
+  ---
+  duration_ms: 23.1278
+  type: 'test'
+  ...
+# Subtest: historical acceptance executables use resolved routing and forward outbox DDL
+ok 3 - historical acceptance executables use resolved routing and forward outbox DDL
+  ---
+  duration_ms: 54.0278
+  type: 'test'
+  ...
+# Subtest: real protected HTTP export/retrieve binds exact root service request and fails changed scope/current membership
+ok 4 - real protected HTTP export/retrieve binds exact root service request and fails changed scope/current membership
+  ---
+  duration_ms: 1744.5878
+  type: 'test'
+  ...
+# Subtest: authenticated encryption, exact replay manifest, current access and tamper/tenant/key rejection
+ok 5 - authenticated encryption, exact replay manifest, current access and tamper/tenant/key rejection
+  ---
+  duration_ms: 553.3034
+  type: 'test'
+  ...
+# Subtest: archive cannot include private payload fields, duplicate identities or out of range facts
+ok 6 - archive cannot include private payload fields, duplicate identities or out of range facts
+  ---
+  duration_ms: 18.5716
+  type: 'test'
+  ...
+# Subtest: source bytes and deterministic IDs/ranges are checked before replay, with no missing chunk acceptance
+ok 7 - source bytes and deterministic IDs/ranges are checked before replay, with no missing chunk acceptance
+  ---
+  duration_ms: 76.3399
+  type: 'test'
+  ...
+# Subtest: capture proxy selection is fixed to the trusted company binding
+ok 8 - capture proxy selection is fixed to the trusted company binding
+  ---
+  duration_ms: 24.541
+  type: 'test'
+  ...
+# Subtest: two company confirmations use independent trusted HTTP fixture endpoints
+ok 9 - two company confirmations use independent trusted HTTP fixture endpoints
+  ---
+  duration_ms: 477.3295
+  type: 'test'
+  ...
+# Subtest: CDC proof is source owned and fixed provenance, then fans out every expected partition
+ok 10 - CDC proof is source owned and fixed provenance, then fans out every expected partition
+  ---
+  duration_ms: 11.9297
+  type: 'test'
+  ...
+# Subtest: idle healthy requires source marker age, epoch, all partitions and all required sinks
+ok 11 - idle healthy requires source marker age, epoch, all partitions and all required sinks
+  ---
+  duration_ms: 9.3784
+  type: 'test'
+  ...
+# Subtest: queued historical markers are terminal on replay without current registration or barriers
+ok 12 - queued historical markers are terminal on replay without current registration or barriers
+  ---
+  duration_ms: 1.8464
+  type: 'test'
+  ...
+# Subtest: one historical binding does not prevent a subsequent current binding from emitting every barrier
+ok 13 - one historical binding does not prevent a subsequent current binding from emitting every barrier
+  ---
+  duration_ms: 17.1738
+  type: 'test'
+  ...
+# Subtest: unknown marker is durably quarantined; unavailable classification and failed quarantine retry
+ok 14 - unknown marker is durably quarantined; unavailable classification and failed quarantine retry
+  ---
+  duration_ms: 2.3935
+  type: 'test'
+  ...
+# Subtest: invalid marker JSON and changed source provenance are durable metadata-only terminal records
+ok 15 - invalid marker JSON and changed source provenance are durable metadata-only terminal records
+  ---
+  duration_ms: 10.4726
+  type: 'test'
+  ...
+# Subtest: historical and unknown markers terminate even after Connect is retired
+ok 16 - historical and unknown markers terminate even after Connect is retired
+  ---
+  duration_ms: 5.8555
+  type: 'test'
+  ...
+# Subtest: only current markers need Connect proof and the epoch is revalidated after confirmation
+ok 17 - only current markers need Connect proof and the epoch is revalidated after confirmation
+  ---
+  duration_ms: 12.9407
+  type: 'test'
+  ...
+# Subtest: CDC LSN bytes remain exact beyond JavaScript safe integer range
+ok 18 - CDC LSN bytes remain exact beyond JavaScript safe integer range
+  ---
+  duration_ms: 17.4473
+  type: 'test'
+  ...
+# Subtest: cross topic barrier requires persisted connector checkpoint including committed LSN
+ok 19 - cross topic barrier requires persisted connector checkpoint including committed LSN
+  ---
+  duration_ms: 3.2245
+  type: 'test'
+  ...
+# Subtest: control cleanup verifies every exact retained ID/content plus healthy checkpoint including NULL-org history
+ok 20 - control cleanup verifies every exact retained ID/content plus healthy checkpoint including NULL-org history
+  ---
+  duration_ms: 35.1649
+  type: 'test'
+  ...
+# Subtest: versioned routed control preserves native control DTO and content hash
+ok 21 - versioned routed control preserves native control DTO and content hash
+  ---
+  duration_ms: 15.0687
+  type: 'test'
+  ...
+# Subtest: EventRouter JSON string preserves explicit null organization without widening native input
+ok 22 - EventRouter JSON string preserves explicit null organization without widening native input
+  ---
+  duration_ms: 6.4775
+  type: 'test'
+  ...
+# Subtest: versioned routed control rejects altered source scope, private bodies, unknown keys and versions
+ok 23 - versioned routed control rejects altered source scope, private bodies, unknown keys and versions
+  ---
+  duration_ms: 8.1061
+  type: 'test'
+  ...
+# Subtest: control metadata trust is independent and orgNULL principal history is retained
+ok 24 - control metadata trust is independent and orgNULL principal history is retained
+  ---
+  duration_ms: 29.4921
+  type: 'test'
+  ...
+# Subtest: all current control event contracts preserve purpose-limited changes
+ok 25 - all current control event contracts preserve purpose-limited changes
+  ---
+  duration_ms: 12.8941
+  type: 'test'
+  ...
+# Subtest: outbox sequence differs from shared proposed/installed configuration revision
+ok 26 - outbox sequence differs from shared proposed/installed configuration revision
+  ---
+  duration_ms: 0.8335
+  type: 'test'
+  ...
+# Subtest: new explicit administration and payroll job cancellation contracts remain closed
+ok 27 - new explicit administration and payroll job cancellation contracts remain closed
+  ---
+  duration_ms: 5.7894
+  type: 'test'
+  ...
+# Subtest: control sink acknowledgement precedes checkpoint and quarantine contains no input
+ok 28 - control sink acknowledgement precedes checkpoint and quarantine contains no input
+  ---
+  duration_ms: 10.9855
+  type: 'test'
+  ...
+# Subtest: eventID/version collision cannot overwrite history; quarantined checkpoint remains partial
+ok 29 - eventID/version collision cannot overwrite history; quarantined checkpoint remains partial
+  ---
+  duration_ms: 546.7072
+  type: 'test'
+  ...
+# Subtest: diagnostics whitelist transport positions and fixed codes only
+ok 30 - diagnostics whitelist transport positions and fixed codes only
+  ---
+  duration_ms: 3.5379
+  type: 'test'
+  ...
+# Subtest: strict whitelisted contract and fixed topic provenance
+ok 31 - strict whitelisted contract and fixed topic provenance
+  ---
+  duration_ms: 457.0243
+  type: 'test'
+  ...
+# Subtest: Debezium unexpanded JSON payload preserves exact heterogeneous event shapes
+ok 32 - Debezium unexpanded JSON payload preserves exact heterogeneous event shapes
+  ---
+  duration_ms: 4.2206
+  type: 'test'
+  ...
+# Subtest: replays and late versions do not replace latest; correction and tombstone advance
+ok 33 - replays and late versions do not replace latest; correction and tombstone advance
+  ---
+  duration_ms: 13.7192
+  type: 'test'
+  ...
+# Subtest: same-version conflicts quarantine independently in history
+ok 34 - same-version conflicts quarantine independently in history
+  ---
+  duration_ms: 2.3813
+  type: 'test'
+  ...
+# Subtest: failed history sink leaves its checkpoint untouched while inbox progresses
+ok 35 - failed history sink leaves its checkpoint untouched while inbox progresses
+  ---
+  duration_ms: 2.1724
+  type: 'test'
+  ...
+# Subtest: malformed DLQ contains only hash and position; DLQ failure blocks advancement
+ok 36 - malformed DLQ contains only hash and position; DLQ failure blocks advancement
+  ---
+  duration_ms: 1.0949
+  type: 'test'
+  ...
+# Subtest: historical accepted membership retains facts but never updates current projection
+ok 37 - historical accepted membership retains facts but never updates current projection
+  ---
+  duration_ms: 1.7096
+  type: 'test'
+  ...
+# Subtest: unknown or pending-only company pair is quarantined without any retained fact
+ok 38 - unknown or pending-only company pair is quarantined without any retained fact
+  ---
+  duration_ms: 0.7549
+  type: 'test'
+  ...
+# Subtest: directory and approval names preserve 255 Unicode characters
+ok 39 - directory and approval names preserve 255 Unicode characters
+  ---
+  duration_ms: 2.3699
+  type: 'test'
+  ...
+# Subtest: typed actor provenance is retained and participates in same-version conflicts
+ok 40 - typed actor provenance is retained and participates in same-version conflicts
+  ---
+  duration_ms: 5.6745
+  type: 'test'
+  ...
+# Subtest: HTTP query binds values as URL parameters and never returns raw server errors
+ok 41 - HTTP query binds values as URL parameters and never returns raw server errors
+  ---
+  duration_ms: 374.2961
+  type: 'test'
+  ...
+# Subtest: shared transport bounds slow responses and keeps control response limit separate
+ok 42 - shared transport bounds slow responses and keeps control response limit separate
+  ---
+  duration_ms: 96.0212
+  type: 'test'
+  ...
+# Subtest: reports require explicit companies, preserve UInt64 strings and flag coverage
+ok 43 - reports require explicit companies, preserve UInt64 strings and flag coverage
+  ---
+  duration_ms: 1.751
+  type: 'test'
+  ...
+# Subtest: inbox makes independent progress while ClickHouse history and reporting fail
+ok 44 - inbox makes independent progress while ClickHouse history and reporting fail
+  ---
+  duration_ms: 421.3118
+  type: 'test'
+  ...
+# Subtest: historical delivery acknowledges successful handling without current projection or data loss
+ok 45 - historical delivery acknowledges successful handling without current projection or data loss
+  ---
+  duration_ms: 2.1899
+  type: 'test'
+  ...
+# Subtest: strict privacy and provenance apply to every role
+ok 46 - strict privacy and provenance apply to every role
+  ---
+  duration_ms: 3.1734
+  type: 'test'
+  ...
+# Subtest: acceptance uses canonical nonpublic company schema and company-specific CDC identities
+ok 47 - acceptance uses canonical nonpublic company schema and company-specific CDC identities
+  ---
+  duration_ms: 33.1233
+  type: 'test'
+  ...
+# Subtest: isolated transport leaves canonical role, slot, schema and SMT contracts intact
+ok 48 - isolated transport leaves canonical role, slot, schema and SMT contracts intact
+  ---
+  duration_ms: 14.9373
+  type: 'test'
+  ...
+# Subtest: precreated streaming topics include the canonical company and control heartbeat contracts
+ok 49 - precreated streaming topics include the canonical company and control heartbeat contracts
+  ---
+  duration_ms: 20.3016
+  type: 'test'
+  ...
+# Subtest: cleanup preserves the original failure and reports both causes when cleanup also fails
+ok 50 - cleanup preserves the original failure and reports both causes when cleanup also fails
+  ---
+  duration_ms: 1.8623
+  type: 'test'
+  ...
+# Subtest: actual source attendance unknown quantities stay null and private coordinates are rejected
+ok 51 - actual source attendance unknown quantities stay null and private coordinates are rejected
+  ---
+  duration_ms: 312.1888
+  type: 'test'
+  ...
+# Subtest: leave quantities use exact centidays and project quantities are only observed seconds
+ok 52 - leave quantities use exact centidays and project quantities are only observed seconds
+  ---
+  duration_ms: 1.7285
+  type: 'test'
+  ...
+# Subtest: legacy genuine audit mapping retains IDs/hash/status only and rejects raw private bodies
+ok 53 - legacy genuine audit mapping retains IDs/hash/status only and rejects raw private bodies
+  ---
+  duration_ms: 1.8528
+  type: 'test'
+  ...
+# Subtest: administration history is resource/action/status metadata and never accepts admin bodies
+ok 54 - administration history is resource/action/status metadata and never accepts admin bodies
+  ---
+  duration_ms: 1.4087
+  type: 'test'
+  ...
+# Subtest: closed control command allowlist exactly follows published Rust wire operation enum
+ok 55 - closed control command allowlist exactly follows published Rust wire operation enum
+  ---
+  duration_ms: 16.7151
+  type: 'test'
+  ...
+# Subtest: timeout cleanup removes its owned child and grandchild process tree
+ok 56 - timeout cleanup removes its owned child and grandchild process tree
+  ---
+  duration_ms: 2132.1426
+  type: 'test'
+  ...
+# Subtest: acceptance launcher retains opt-in gate before loading any fixture
+ok 57 - acceptance launcher retains opt-in gate before loading any fixture
+  ---
+  duration_ms: 390.3498
+  type: 'test'
+  ...
+# Subtest: private capture requires connector passed committed marker and every protected complete record
+ok 58 - private capture requires connector passed committed marker and every protected complete record
+  ---
+  duration_ms: 47.7806
+  type: 'test'
+  ...
+# Subtest: a high checkpoint cannot hide missing chunks, source identity conflicts or stale generation
+ok 59 - a high checkpoint cannot hide missing chunks, source identity conflicts or stale generation
+  ---
+  duration_ms: 6.4695
+  type: 'test'
+  ...
+# Subtest: capture cannot create acceptance without independent restore or the complete source count
+ok 60 - capture cannot create acceptance without independent restore or the complete source count
+  ---
+  duration_ms: 14.0893
+  type: 'test'
+  ...
+# Subtest: capture waits for the pulse connector checkpoint before refreshing a lagging slot
+ok 61 - capture waits for the pulse connector checkpoint before refreshing a lagging slot
+  ---
+  duration_ms: 19.9765
+  type: 'test'
+  ...
+# Subtest: capture rejects a marker mutation while waiting and a slot that never passes the marker
+ok 62 - capture rejects a marker mutation while waiting and a slot that never passes the marker
+  ---
+  duration_ms: 14.6989
+  type: 'test'
+  ...
+# Subtest: idle source pulse uses source-owned metadata, stable ciphertext restart and never republishes a collected pulse
+ok 63 - idle source pulse uses source-owned metadata, stable ciphertext restart and never republishes a collected pulse
+  ---
+  duration_ms: 45.2404
+  type: 'test'
+  ...
+# Subtest: shared Rust Node frozen source-byte vector
+ok 64 - shared Rust Node frozen source-byte vector
+  ---
+  duration_ms: 84.203
+  type: 'test'
+  ...
+# Subtest: exact unknown UTF8 source bytes roundtrip
+ok 65 - exact unknown UTF8 source bytes roundtrip
+  ---
+  duration_ms: 3.4364
+  type: 'test'
+  ...
+# Subtest: single authenticated chunk is bounded without declaring record complete
+ok 66 - single authenticated chunk is bounded without declaring record complete
+  ---
+  duration_ms: 12.2968
+  type: 'test'
+  ...
+# Subtest: each immutable head field and ciphertext modification fails closed
+ok 67 - each immutable head field and ciphertext modification fails closed
+  ---
+  duration_ms: 9.5204
+  type: 'test'
+  ...
+# Subtest: partial duplicate conflicting frames and oversized input rejected
+ok 68 - partial duplicate conflicting frames and oversized input rejected
+  ---
+  duration_ms: 17.7923
+  type: 'test'
+  ...
+# Subtest: keyring rejects defaults duplicate scope missing active malformed keys and keeps rotation readers
+ok 69 - keyring rejects defaults duplicate scope missing active malformed keys and keeps rotation readers
+  ---
+  duration_ms: 2.4414
+  type: 'test'
+  ...
+# Subtest: invalid calendar dates unknown envelope fields nonce and noncanonical base64 rejected
+ok 70 - invalid calendar dates unknown envelope fields nonce and noncanonical base64 rejected
+  ---
+  duration_ms: 2.7667
+  type: 'test'
+  ...
+# Subtest: unknown keyfile properties fail consistently with Rust strict keyfile schema
+ok 71 - unknown keyfile properties fail consistently with Rust strict keyfile schema
+  ---
+  duration_ms: 0.6548
+  type: 'test'
+  ...
+# Subtest: delivery query authenticates purpose, generation, complete coverage and request hash
+ok 72 - delivery query authenticates purpose, generation, complete coverage and request hash
+  ---
+  duration_ms: 18.0936
+  type: 'test'
+  ...
+# Subtest: event candidate limit groups original IDs before selecting fanout; SQL remains parameterized
+ok 73 - event candidate limit groups original IDs before selecting fanout; SQL remains parameterized
+  ---
+  duration_ms: 1.9793
+  type: 'test'
+  ...
+# Subtest: log queries select only webhook attempts and expose safe event diagnostics
+ok 74 - log queries select only webhook attempts and expose safe event diagnostics
+  ---
+  duration_ms: 0.7095
+  type: 'test'
+  ...
+# Subtest: signed delivery history keeps raw large integers exact and rejects foreign rows
+ok 75 - signed delivery history keeps raw large integers exact and rejects foreign rows
+  ---
+  duration_ms: 3.2952
+  type: 'test'
+  ...
+# Subtest: cursor paging binds original event IDs and timestamp instead of row offsets
+ok 76 - cursor paging binds original event IDs and timestamp instead of row offsets
+  ---
+  duration_ms: 4.6325
+  type: 'test'
+  ...
+# Subtest: source Rust frozen proof vector matches the Node wire
+ok 77 - source Rust frozen proof vector matches the Node wire
+  ---
+  duration_ms: 26.1799
+  type: 'test'
+  ...
+# Subtest: delivery wire authenticates full source response and rejects identity/time/domain tamper
+ok 78 - delivery wire authenticates full source response and rejects identity/time/domain tamper
+  ---
+  duration_ms: 6.4181
+  type: 'test'
+  ...
+# Subtest: per destination success is never resent after lost Kafka acknowledgement
+ok 79 - per destination success is never resent after lost Kafka acknowledgement
+  ---
+  duration_ms: 3.301
+  type: 'test'
+  ...
+# Subtest: safe failures use bounded broker retry and stale original work cannot advance new leases
+ok 80 - safe failures use bounded broker retry and stale original work cannot advance new leases
+  ---
+  duration_ms: 2.3973
+  type: 'test'
+  ...
+# Subtest: transport ack loss probes the same lease and uncertainty cannot become another send
+ok 81 - transport ack loss probes the same lease and uncertainty cannot become another send
+  ---
+  duration_ms: 1.4936
+  type: 'test'
+  ...
+# Subtest: future retry is not acknowledged or executed and work scope is validated
+ok 82 - future retry is not acknowledged or executed and work scope is validated
+  ---
+  duration_ms: 1.286
+  type: 'test'
+  ...
+# Subtest: authorized replay starts after the source lease fence with a fresh bounded retry budget
+ok 83 - authorized replay starts after the source lease fence with a fresh bounded retry budget
+  ---
+  duration_ms: 1.24
+  type: 'test'
+  ...
+# Subtest: private history retains full unknown audit bytes, microseconds and duplicate identity
+ok 84 - private history retains full unknown audit bytes, microseconds and duplicate identity
+  ---
+  duration_ms: 49.209
+  type: 'test'
+  ...
+# Subtest: durable chunks survive restart and preserve UTF8 split across framing
+ok 85 - durable chunks survive restart and preserve UTF8 split across framing
+  ---
+  duration_ms: 34.1337
+  type: 'test'
+  ...
+# Subtest: cross company, purpose, future generation, conflicts and tampering never advance checkpoint
+ok 86 - cross company, purpose, future generation, conflicts and tampering never advance checkpoint
+  ---
+  duration_ms: 12.0883
+  type: 'test'
+  ...
+# Subtest: delivery-looking historical rows are retained as history and never executable
+ok 87 - delivery-looking historical rows are retained as history and never executable
+  ---
+  duration_ms: 2.4076
+  type: 'test'
+  ...
+# Subtest: original UUID collisions across legacy tables remain separate historical records
+ok 88 - original UUID collisions across legacy tables remain separate historical records
+  ---
+  duration_ms: 3.9168
+  type: 'test'
+  ...
+# Subtest: capture pulse is typed internal history with exact 64-bit position and no executable work
+ok 89 - capture pulse is typed internal history with exact 64-bit position and no executable work
+  ---
+  duration_ms: 3.28
+  type: 'test'
+  ...
+# Subtest: authorized replay emits only original intent references and bounded work options
+ok 90 - authorized replay emits only original intent references and bounded work options
+  ---
+  duration_ms: 18.5824
+  type: 'test'
+  ...
+# Subtest: purpose-specific datasets reject a Finance intent encrypted into the audit stream
+ok 91 - purpose-specific datasets reject a Finance intent encrypted into the audit stream
+  ---
+  duration_ms: 1.7624
+  type: 'test'
+  ...
+# Subtest: raw unknown columns and microseconds survive restart and protected restore without numeric reserialization
+ok 92 - raw unknown columns and microseconds survive restart and protected restore without numeric reserialization
+  ---
+  duration_ms: 238.7076
+  type: 'test'
+  ...
+# Subtest: conflicting restart fails; incomplete archive and wrong generation cannot produce restore proof
+ok 93 - conflicting restart fails; incomplete archive and wrong generation cannot produce restore proof
+  ---
+  duration_ms: 122.9307
+  type: 'test'
+  ...
+# Subtest: historical deliveries are never executable and ambiguous log evidence stays unresolved
+ok 94 - historical deliveries are never executable and ambiguous log evidence stays unresolved
+  ---
+  duration_ms: 1.44
+  type: 'test'
+  ...
+# Subtest: audit_log: complete raw framed roundtrip uses historical-only consumer and detached scope
+ok 95 - audit_log: complete raw framed roundtrip uses historical-only consumer and detached scope
+  ---
+  duration_ms: 453.2599
+  type: 'test'
+  ...
+# Subtest: outbox_event: complete raw framed roundtrip uses historical-only consumer and detached scope
+ok 96 - outbox_event: complete raw framed roundtrip uses historical-only consumer and detached scope
+  ---
+  duration_ms: 447.6314
+  type: 'test'
+  ...
+# Subtest: webhook_delivery_log: complete raw framed roundtrip uses historical-only consumer and detached scope
+ok 97 - webhook_delivery_log: complete raw framed roundtrip uses historical-only consumer and detached scope
+  ---
+  duration_ms: 439.6394
+  type: 'test'
+  ...
+# Subtest: employee_finance_outbox: complete raw framed roundtrip uses historical-only consumer and detached scope
+ok 98 - employee_finance_outbox: complete raw framed roundtrip uses historical-only consumer and detached scope
+  ---
+  duration_ms: 399.4233
+  type: 'test'
+  ...
+# Subtest: operator_audit_log: complete raw framed roundtrip uses historical-only consumer and detached scope
+ok 99 - operator_audit_log: complete raw framed roundtrip uses historical-only consumer and detached scope
+  ---
+  duration_ms: 352.1766
+  type: 'test'
+  ...
+# Subtest: oversized and raced source rows never complete or silently truncate
+ok 100 - oversized and raced source rows never complete or silently truncate
+  ---
+  duration_ms: 81.1306
+  type: 'test'
+  ...
+# Subtest: source-published ciphertext recovers the exact event IDs after local artifacts are rebuilt
+ok 101 - source-published ciphertext recovers the exact event IDs after local artifacts are rebuilt
+  ---
+  duration_ms: 88.2171
+  type: 'test'
+  ...
+# Subtest: incomplete manifest has no restore or acceptance path
+ok 102 - incomplete manifest has no restore or acceptance path
+  ---
+  duration_ms: 41.2224
+  type: 'test'
+  ...
+# Subtest: one protected delivery store retains equal UUIDs across all three tables and original record generation
+ok 103 - one protected delivery store retains equal UUIDs across all three tables and original record generation
+  ---
+  duration_ms: 300.3326
+  type: 'test'
+  ...
+# Subtest: verified empty export uses the source identity digest and an explicit independent restore proof
+ok 104 - verified empty export uses the source identity digest and an explicit independent restore proof
+  ---
+  duration_ms: 31.4756
+  type: 'test'
+  ...
+# Subtest: source operator DSN cannot override the fixed TLS CA/verification configuration
+ok 105 - source operator DSN cannot override the fixed TLS CA/verification configuration
+  ---
+  duration_ms: 2.097
+  type: 'test'
+  ...
+# Subtest: source ownership binds durable broker coordinates and cannot imply receiver acknowledgement
+ok 106 - source ownership binds durable broker coordinates and cannot imply receiver acknowledgement
+  ---
+  duration_ms: 14.4263
+  type: 'test'
+  ...
+# Subtest: duplicate publication preserves the first authenticated source ownership receipt
+ok 107 - duplicate publication preserves the first authenticated source ownership receipt
+  ---
+  duration_ms: 2.0259
+  type: 'test'
+  ...
+# Subtest: only verified tenant-bound source can query covered full history and authenticate response
+ok 108 - only verified tenant-bound source can query covered full history and authenticate response
+  ---
+  duration_ms: 17.1912
+  type: 'test'
+  ...
+# Subtest: forged, expired, cross-tenant, extra fields, SQL and invalid limits are rejected before storage
+ok 109 - forged, expired, cross-tenant, extra fields, SQL and invalid limits are rejected before storage
+  ---
+  duration_ms: 28.0973
+  type: 'test'
+  ...
+# Subtest: absence of accepted legacy coverage is an error rather than empty history
+ok 110 - absence of accepted legacy coverage is an error rather than empty history
+  ---
+  duration_ms: 1.8208
+  type: 'test'
+  ...
+# Subtest: raw audit JSON crosses the signed API without rounding large numbers or rewriting fields
+ok 111 - raw audit JSON crosses the signed API without rounding large numbers or rewriting fields
+  ---
+  duration_ms: 3.3016
+  type: 'test'
+  ...
+# Subtest: retention requires every current accepted capture/history/consumer/restore/cutover gate
+ok 112 - retention requires every current accepted capture/history/consumer/restore/cutover gate
+  ---
+  duration_ms: 3.0242
+  type: 'test'
+  ...
+# Subtest: archive verifies existing Rust RS256 body/route/tenant/audience/service/time binding with public trust only
+ok 113 - archive verifies existing Rust RS256 body/route/tenant/audience/service/time binding with public trust only
+  ---
+  duration_ms: 652.9826
+  type: 'test'
+  ...
+# Subtest: source CLI rejects new legacy audit exports before requesting source credentials
+ok 114 - source CLI rejects new legacy audit exports before requesting source credentials
+  ---
+  duration_ms: 3260.5465
+  type: 'test'
+  ...
+# Subtest: source CLI retains canonical OUTBOX validation
+ok 115 - source CLI retains canonical OUTBOX validation
+  ---
+  duration_ms: 2040.3326
+  type: 'test'
+  ...
+# Subtest: previously stored legacy manifests retain their historical parser
+ok 116 - previously stored legacy manifests retain their historical parser
+  ---
+  duration_ms: 12.4023
+  type: 'test'
+  ...
+# Subtest: archive boundaries preserve submillisecond source precision and timezone equivalence
+ok 117 - archive boundaries preserve submillisecond source precision and timezone equivalence
+  ---
+  duration_ms: 7.8397
+  type: 'test'
+  ...
+# Subtest: ClickHouse histories share UTC millisecond normalization for their declared schema
+ok 118 - ClickHouse histories share UTC millisecond normalization for their declared schema
+  ---
+  duration_ms: 16.2879
+  type: 'test'
+  ...
+1..118
+# tests 118
+# suites 0
+# pass 118
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 8680.027

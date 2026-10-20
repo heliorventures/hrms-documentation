@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "mode": "organization",
+  "tag": "helior-organization-001",
+  "platformDir": "/opt/apps",
+  "appDir": "/opt/apps/hrms",
+  "appNetwork": "apps_app-network",
+  "publicHost": "heliorsoft.com",
+  "apiHost": "api.heliorsoft.com",
+  "tenantBaseDomain": "heliorsoft.com",
+  "companies": [
+    {"id": "11111111-1111-4111-8111-111111111111", "slug": "company-a", "publicHost": "company-a.heliorsoft.com", "privateFilesPath": "/opt/apps/hrms/data/company-a/private-files"},
+    {"id": "22222222-2222-4222-8222-222222222222", "slug": "company-b", "publicHost": "company-b.heliorsoft.com", "privateFilesPath": "/opt/apps/hrms/data/company-b/private-files"}
+  ]
+}

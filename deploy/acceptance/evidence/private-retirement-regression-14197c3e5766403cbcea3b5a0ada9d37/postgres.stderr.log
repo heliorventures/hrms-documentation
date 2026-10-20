@@ -1,0 +1,94 @@
+2026-10-19T17:07:39.946183031Z sh: locale: not found
+2026-10-19T17:07:39.946961570Z 2026-10-19 17:07:39.946 UTC [36] WARNING:  no usable system locales were found
+2026-10-19T17:07:43.034291875Z initdb: warning: enabling "trust" authentication for local connections
+2026-10-19T17:07:43.034348104Z initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+2026-10-19T17:07:44.131705517Z 2026-10-19 17:07:44.131 UTC [1] LOG:  starting PostgreSQL 16.15 on x86_64-pc-linux-musl, compiled by gcc (Alpine 15.2.0) 15.2.0, 64-bit
+2026-10-19T17:07:44.133005883Z 2026-10-19 17:07:44.132 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-10-19T17:07:44.133058309Z 2026-10-19 17:07:44.132 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-10-19T17:07:44.140141916Z 2026-10-19 17:07:44.139 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-19T17:07:44.145699667Z 2026-10-19 17:07:44.145 UTC [58] LOG:  database system was shut down at 2026-10-19 17:07:43 UTC
+2026-10-19T17:07:44.156311300Z 2026-10-19 17:07:44.156 UTC [1] LOG:  database system is ready to accept connections
+2026-10-19T17:10:15.973895855Z 2026-10-19 17:10:15.972 UTC [56] LOG:  checkpoint starting: immediate force wait
+2026-10-19T17:10:16.026227442Z 2026-10-19 17:10:16.025 UTC [56] LOG:  checkpoint complete: wrote 17 buffers (0.1%); 1 WAL file(s) added, 0 removed, 0 recycled; write=0.042 s, sync=0.001 s, total=0.056 s; sync files=12, longest=0.001 s, average=0.001 s; distance=5068 kB, estimate=5068 kB; lsn=0/1E18EF0, redo lsn=0/1E18EB8
+2026-10-19T17:11:24.832464605Z 2026-10-19 17:11:24.832 UTC [82] LOG:  logical decoding found consistent point at 0/230F9F0
+2026-10-19T17:11:24.832519392Z 2026-10-19 17:11:24.832 UTC [82] DETAIL:  There are no running transactions.
+2026-10-19T17:11:24.832523755Z 2026-10-19 17:11:24.832 UTC [82] STATEMENT:  CREATE_REPLICATION_SLOT "organization_company_0a880a49ac404615818f2791ea88376b"  LOGICAL pgoutput 
+2026-10-19T17:11:24.842679479Z 2026-10-19 17:11:24.842 UTC [82] LOG:  exported logical decoding snapshot: "00000007-00000003-1" with 0 transaction IDs
+2026-10-19T17:11:24.842734987Z 2026-10-19 17:11:24.842 UTC [82] STATEMENT:  CREATE_REPLICATION_SLOT "organization_company_0a880a49ac404615818f2791ea88376b"  LOGICAL pgoutput 
+2026-10-19T17:11:26.057659037Z 2026-10-19 17:11:26.057 UTC [82] LOG:  starting logical decoding for slot "organization_company_0a880a49ac404615818f2791ea88376b"
+2026-10-19T17:11:26.057720923Z 2026-10-19 17:11:26.057 UTC [82] DETAIL:  Streaming transactions committing after 0/230FA28, reading WAL from 0/230F9F0.
+2026-10-19T17:11:26.057727185Z 2026-10-19 17:11:26.057 UTC [82] STATEMENT:  START_REPLICATION SLOT "organization_company_0a880a49ac404615818f2791ea88376b" LOGICAL 0/230FA28 ("proto_version" '1', "publication_names" 'organization_company_outbox', "messages" 'true')
+2026-10-19T17:11:26.057732030Z 2026-10-19 17:11:26.057 UTC [82] LOG:  logical decoding found consistent point at 0/230F9F0
+2026-10-19T17:11:26.057736052Z 2026-10-19 17:11:26.057 UTC [82] DETAIL:  There are no running transactions.
+2026-10-19T17:11:26.057740285Z 2026-10-19 17:11:26.057 UTC [82] STATEMENT:  START_REPLICATION SLOT "organization_company_0a880a49ac404615818f2791ea88376b" LOGICAL 0/230FA28 ("proto_version" '1', "publication_names" 'organization_company_outbox', "messages" 'true')
+2026-10-19T17:12:57.319756251Z 2026-10-19 17:12:57.319 UTC [56] LOG:  checkpoint starting: immediate force wait
+2026-10-19T17:12:57.324174718Z 2026-10-19 17:12:57.323 UTC [56] LOG:  checkpoint complete: wrote 13 buffers (0.1%); 0 WAL file(s) added, 0 removed, 1 recycled; write=0.004 s, sync=0.001 s, total=0.005 s; sync files=11, longest=0.001 s, average=0.001 s; distance=5170 kB, estimate=5170 kB; lsn=0/2325A68, redo lsn=0/2325A30
+2026-10-19T17:14:14.479534000Z 2026-10-19 17:14:14.479 UTC [101] LOG:  logical decoding found consistent point at 0/281EB00
+2026-10-19T17:14:14.479583709Z 2026-10-19 17:14:14.479 UTC [101] DETAIL:  There are no running transactions.
+2026-10-19T17:14:14.479598971Z 2026-10-19 17:14:14.479 UTC [101] STATEMENT:  CREATE_REPLICATION_SLOT "organization_company_975b627d44224a6db7648004ac970bab"  LOGICAL pgoutput 
+2026-10-19T17:14:14.479952272Z 2026-10-19 17:14:14.479 UTC [101] LOG:  exported logical decoding snapshot: "00000007-0000000A-1" with 0 transaction IDs
+2026-10-19T17:14:14.479974842Z 2026-10-19 17:14:14.479 UTC [101] STATEMENT:  CREATE_REPLICATION_SLOT "organization_company_975b627d44224a6db7648004ac970bab"  LOGICAL pgoutput 
+2026-10-19T17:14:14.801258651Z 2026-10-19 17:14:14.800 UTC [101] LOG:  starting logical decoding for slot "organization_company_975b627d44224a6db7648004ac970bab"
+2026-10-19T17:14:14.801345863Z 2026-10-19 17:14:14.800 UTC [101] DETAIL:  Streaming transactions committing after 0/281EB38, reading WAL from 0/281EB00.
+2026-10-19T17:14:14.801360748Z 2026-10-19 17:14:14.800 UTC [101] STATEMENT:  START_REPLICATION SLOT "organization_company_975b627d44224a6db7648004ac970bab" LOGICAL 0/281EB38 ("proto_version" '1', "publication_names" 'organization_company_outbox', "messages" 'true')
+2026-10-19T17:14:14.801373789Z 2026-10-19 17:14:14.800 UTC [101] LOG:  logical decoding found consistent point at 0/281EB00
+2026-10-19T17:14:14.801421382Z 2026-10-19 17:14:14.800 UTC [101] DETAIL:  There are no running transactions.
+2026-10-19T17:14:14.801428350Z 2026-10-19 17:14:14.800 UTC [101] STATEMENT:  START_REPLICATION SLOT "organization_company_975b627d44224a6db7648004ac970bab" LOGICAL 0/281EB38 ("proto_version" '1', "publication_names" 'organization_company_outbox', "messages" 'true')
+2026-10-19T17:14:19.195329999Z 2026-10-19 17:14:19.194 UTC [103] ERROR:  permission denied for table synthetic_worklog
+2026-10-19T17:14:19.195388470Z 2026-10-19 17:14:19.194 UTC [103] STATEMENT:  SELECT * FROM company_fixture.synthetic_worklog
+2026-10-19T17:14:25.156209380Z 2026-10-19 17:14:25.155 UTC [56] LOG:  checkpoint starting: immediate force wait
+2026-10-19T17:14:25.157422182Z 2026-10-19 17:14:25.157 UTC [56] LOG:  checkpoint complete: wrote 10 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.001 s, sync=0.001 s, total=0.002 s; sync files=10, longest=0.001 s, average=0.000 s; distance=5103 kB, estimate=5164 kB; lsn=0/2821820, redo lsn=0/28217E8
+2026-10-19T17:14:52.855692673Z 2026-10-19 17:14:52.855 UTC [109] ERROR:  permission denied for table synthetic_private_secret
+2026-10-19T17:14:52.855739451Z 2026-10-19 17:14:52.855 UTC [109] STATEMENT:  SELECT * FROM kabipay_ops.synthetic_private_secret
+2026-10-19T17:14:52.860555833Z 2026-10-19 17:14:52.860 UTC [109] ERROR:  permission denied for table organization_outbox
+2026-10-19T17:14:52.860593605Z 2026-10-19 17:14:52.860 UTC [109] STATEMENT:  UPDATE kabipay_ops.organization_outbox SET schema_version=1
+2026-10-19T17:14:57.985407118Z 2026-10-19 17:14:57.984 UTC [114] LOG:  logical decoding found consistent point at 0/2C7F680
+2026-10-19T17:14:57.985489731Z 2026-10-19 17:14:57.984 UTC [114] DETAIL:  There are no running transactions.
+2026-10-19T17:14:57.985500504Z 2026-10-19 17:14:57.984 UTC [114] STATEMENT:  CREATE_REPLICATION_SLOT "control_history_eb7578b52179"  LOGICAL pgoutput 
+2026-10-19T17:14:57.985508680Z 2026-10-19 17:14:57.985 UTC [114] LOG:  exported logical decoding snapshot: "00000007-00000016-1" with 0 transaction IDs
+2026-10-19T17:14:57.985516508Z 2026-10-19 17:14:57.985 UTC [114] STATEMENT:  CREATE_REPLICATION_SLOT "control_history_eb7578b52179"  LOGICAL pgoutput 
+2026-10-19T17:14:58.137711214Z 2026-10-19 17:14:58.137 UTC [114] LOG:  starting logical decoding for slot "control_history_eb7578b52179"
+2026-10-19T17:14:58.137861897Z 2026-10-19 17:14:58.137 UTC [114] DETAIL:  Streaming transactions committing after 0/2C7F6B8, reading WAL from 0/2C7F680.
+2026-10-19T17:14:58.137893483Z 2026-10-19 17:14:58.137 UTC [114] STATEMENT:  START_REPLICATION SLOT "control_history_eb7578b52179" LOGICAL 0/2C7F6B8 ("proto_version" '1', "publication_names" 'organization_control_outbox', "messages" 'true')
+2026-10-19T17:14:58.137910715Z 2026-10-19 17:14:58.137 UTC [114] LOG:  logical decoding found consistent point at 0/2C7F680
+2026-10-19T17:14:58.137920726Z 2026-10-19 17:14:58.137 UTC [114] DETAIL:  There are no running transactions.
+2026-10-19T17:14:58.137930191Z 2026-10-19 17:14:58.137 UTC [114] STATEMENT:  START_REPLICATION SLOT "control_history_eb7578b52179" LOGICAL 0/2C7F6B8 ("proto_version" '1', "publication_names" 'organization_control_outbox', "messages" 'true')
+2026-10-19T17:15:28.781079058Z 2026-10-19 17:15:28.780 UTC [113] FATAL:  terminating connection due to administrator command
+2026-10-19T17:15:28.781142743Z 2026-10-19 17:15:28.780 UTC [114] FATAL:  terminating connection due to administrator command
+2026-10-19T17:15:28.781152550Z 2026-10-19 17:15:28.780 UTC [114] STATEMENT:  START_REPLICATION SLOT "control_history_eb7578b52179" LOGICAL 0/2C7F6B8 ("proto_version" '1', "publication_names" 'organization_control_outbox', "messages" 'true')
+2026-10-19T17:15:28.781160471Z 2026-10-19 17:15:28.780 UTC [112] FATAL:  terminating connection due to administrator command
+2026-10-19T17:15:28.803976020Z 2026-10-19 17:15:28.803 UTC [56] LOG:  checkpoint starting: immediate force wait
+2026-10-19T17:15:28.804724977Z 2026-10-19 17:15:28.804 UTC [56] LOG:  checkpoint complete: wrote 10 buffers (0.1%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.001 s, sync=0.001 s, total=0.001 s; sync files=10, longest=0.001 s, average=0.000 s; distance=4480 kB, estimate=5095 kB; lsn=0/2C81B10, redo lsn=0/2C81AD8
+2026-10-19T17:15:55.832853156Z 2026-10-19 17:15:55.831 UTC [123] ERROR:  permission denied for table tenant
+2026-10-19T17:15:55.832905748Z 2026-10-19 17:15:55.831 UTC [123] STATEMENT:  SELECT private_configuration FROM kabipay_ops.tenant
+2026-10-19T17:15:55.875021685Z 2026-10-19 17:15:55.874 UTC [124] ERROR:  permission denied for table organization_company
+2026-10-19T17:15:55.875062926Z 2026-10-19 17:15:55.874 UTC [124] STATEMENT:  UPDATE kabipay_ops.organization_company SET status='ACTIVE'
+2026-10-19T17:16:06.524557193Z 2026-10-19 17:16:06.524 UTC [56] LOG:  checkpoint starting: immediate force wait
+2026-10-19T17:16:06.535698198Z 2026-10-19 17:16:06.535 UTC [56] LOG:  checkpoint complete: wrote 938 buffers (5.7%); 0 WAL file(s) added, 0 removed, 1 recycled; write=0.010 s, sync=0.001 s, total=0.012 s; sync files=312, longest=0.001 s, average=0.000 s; distance=9454 kB, estimate=9454 kB; lsn=0/35BD3D0, redo lsn=0/35BD398
+2026-10-19T17:16:06.541234236Z 2026-10-19 17:16:06.540 UTC [56] LOG:  checkpoint starting: immediate force wait
+2026-10-19T17:16:06.542299820Z 2026-10-19 17:16:06.542 UTC [56] LOG:  checkpoint complete: wrote 2 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.001 s, sync=0.001 s, total=0.002 s; sync files=2, longest=0.001 s, average=0.001 s; distance=2 kB, estimate=8509 kB; lsn=0/35BDFB0, redo lsn=0/35BDF78
+2026-10-19T17:17:00.286100577Z 2026-10-19 17:17:00.285 UTC [56] LOG:  checkpoint starting: immediate force wait
+2026-10-19T17:17:00.288818439Z 2026-10-19 17:17:00.287 UTC [56] LOG:  checkpoint complete: wrote 7 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.002 s, sync=0.001 s, total=0.003 s; sync files=7, longest=0.001 s, average=0.001 s; distance=5108 kB, estimate=8169 kB; lsn=0/3ABB2D0, redo lsn=0/3ABB298
+2026-10-19T17:17:49.204946151Z 2026-10-19 17:17:49.204 UTC [138] ERROR:  Inactive administration history membership
+2026-10-19T17:17:49.205067025Z 2026-10-19 17:17:49.204 UTC [138] CONTEXT:  PL/pgSQL function organization_emit_administration(uuid,uuid,text,uuid,bigint,text,text) line 9 at RAISE
+2026-10-19T17:17:49.205077738Z 2026-10-19 17:17:49.204 UTC [138] STATEMENT:  SELECT organization_emit_administration($1,$2,'employee',$3,1,'employee_update','RECORDED')
+2026-10-19T17:18:21.139336059Z 2026-10-19 17:18:21.138 UTC [156] LOG:  logical decoding found consistent point at 0/447DD50
+2026-10-19T17:18:21.139410762Z 2026-10-19 17:18:21.138 UTC [156] DETAIL:  There are no running transactions.
+2026-10-19T17:18:21.139418239Z 2026-10-19 17:18:21.138 UTC [156] STATEMENT:  CREATE_REPLICATION_SLOT "organization_company_24a8ed11de5d40c5988d93f124b14b8c"  LOGICAL pgoutput 
+2026-10-19T17:18:21.140372856Z 2026-10-19 17:18:21.139 UTC [156] LOG:  exported logical decoding snapshot: "00000009-00000003-1" with 0 transaction IDs
+2026-10-19T17:18:21.140419075Z 2026-10-19 17:18:21.139 UTC [156] STATEMENT:  CREATE_REPLICATION_SLOT "organization_company_24a8ed11de5d40c5988d93f124b14b8c"  LOGICAL pgoutput 
+2026-10-19T17:18:22.050668939Z 2026-10-19 17:18:22.050 UTC [156] LOG:  starting logical decoding for slot "organization_company_24a8ed11de5d40c5988d93f124b14b8c"
+2026-10-19T17:18:22.050739646Z 2026-10-19 17:18:22.050 UTC [156] DETAIL:  Streaming transactions committing after 0/447DD88, reading WAL from 0/447DD50.
+2026-10-19T17:18:22.050751080Z 2026-10-19 17:18:22.050 UTC [156] STATEMENT:  START_REPLICATION SLOT "organization_company_24a8ed11de5d40c5988d93f124b14b8c" LOGICAL 0/447DD88 ("proto_version" '1', "publication_names" 'organization_company_outbox', "messages" 'true')
+2026-10-19T17:18:22.050780823Z 2026-10-19 17:18:22.050 UTC [156] LOG:  logical decoding found consistent point at 0/447DD50
+2026-10-19T17:18:22.050790706Z 2026-10-19 17:18:22.050 UTC [156] DETAIL:  There are no running transactions.
+2026-10-19T17:18:22.050797236Z 2026-10-19 17:18:22.050 UTC [156] STATEMENT:  START_REPLICATION SLOT "organization_company_24a8ed11de5d40c5988d93f124b14b8c" LOGICAL 0/447DD88 ("proto_version" '1', "publication_names" 'organization_company_outbox', "messages" 'true')
+2026-10-19T17:20:43.807093494Z 2026-10-19 17:20:43.806 UTC [181] WARNING:  there is no transaction in progress
+2026-10-19T17:20:51.247769277Z 2026-10-19 17:20:51.247 UTC [154] FATAL:  terminating connection due to administrator command
+2026-10-19T17:20:51.247848619Z 2026-10-19 17:20:51.247 UTC [156] FATAL:  terminating connection due to administrator command
+2026-10-19T17:20:51.247859367Z 2026-10-19 17:20:51.247 UTC [156] STATEMENT:  START_REPLICATION SLOT "organization_company_24a8ed11de5d40c5988d93f124b14b8c" LOGICAL 0/447DD88 ("proto_version" '1', "publication_names" 'organization_company_outbox', "messages" 'true')
+2026-10-19T17:20:51.247868652Z 2026-10-19 17:20:51.247 UTC [155] FATAL:  terminating connection due to administrator command
+2026-10-19T17:20:51.278026795Z 2026-10-19 17:20:51.277 UTC [56] LOG:  checkpoint starting: immediate force wait
+2026-10-19T17:20:51.391477542Z 2026-10-19 17:20:51.390 UTC [56] LOG:  checkpoint complete: wrote 1040 buffers (6.3%); 0 WAL file(s) added, 0 removed, 1 recycled; write=0.109 s, sync=0.003 s, total=0.114 s; sync files=386, longest=0.001 s, average=0.001 s; distance=10143 kB, estimate=10143 kB; lsn=0/44A3100, redo lsn=0/44A30C8
+2026-10-19T17:20:51.451802327Z 2026-10-19 17:20:51.451 UTC [56] LOG:  checkpoint starting: immediate force wait
+2026-10-19T17:20:51.452099720Z 2026-10-19 17:20:51.451 UTC [56] LOG:  checkpoint complete: wrote 3 buffers (0.0%); 0 WAL file(s) added, 0 removed, 0 recycled; write=0.001 s, sync=0.001 s, total=0.001 s; sync files=3, longest=0.001 s, average=0.000 s; distance=5 kB, estimate=9129 kB; lsn=0/44A4770, redo lsn=0/44A4738

@@ -97,20 +97,19 @@ validate_host() {
         done
     fi
 }
-validate_env() {
+validate_finance() {
     local file="$1" key secret jwt url port host
-    for key in POSTGRES_HOST POSTGRES_PORT POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD KABIPAY_JWT_SECRET; do
-        [ -n "$(get_env_value "$file" "$key")" ] || fail "$key is missing in $APP_DIR/.env"
-    done
     secret="$(literal_value "$file" KABIPAY_FINANCE_SERVICE_SECRET)"
     [ "${#secret}" -ge 32 ] || fail "KABIPAY_FINANCE_SERVICE_SECRET must contain at least 32 bytes"
-    jwt="$(literal_value "$file" KABIPAY_JWT_SECRET)"
-    [ -n "$jwt" ] || fail 'KABIPAY_JWT_SECRET must not be empty'
-    [ "$secret" != "$jwt" ] || fail "KABIPAY_FINANCE_SERVICE_SECRET must be independent of KABIPAY_JWT_SECRET"
+    if has_env_key "$file" KABIPAY_JWT_SECRET; then
+        jwt="$(literal_value "$file" KABIPAY_JWT_SECRET)"
+        [ -n "$jwt" ] || fail 'KABIPAY_JWT_SECRET must not be empty'
+        [ "$secret" != "$jwt" ] || fail "KABIPAY_FINANCE_SERVICE_SECRET must be independent of KABIPAY_JWT_SECRET"
+    fi
     for key in KABIPAY_FINANCE_EMPLOYEE_URL KABIPAY_FINANCE_PAYROLL_URL; do
         url="$(literal_value "$file" "$key")"
-        [[ "$url" =~ ^https?://(\[[[:xdigit:]:]+\]|[a-zA-Z0-9.-]+)(:([0-9]{1,5}))?/?$ ]] ||
-            fail "$key must be an HTTP(S) origin without credentials, path, query or fragment"
+        [[ "$url" =~ ^https://(\[[[:xdigit:]:]+\]|[a-zA-Z0-9.-]+)(:([0-9]{1,5}))?/?$ ]] ||
+            fail "$key must be an HTTPS origin without credentials, path, query or fragment"
         host="${BASH_REMATCH[1]}"; port="${BASH_REMATCH[3]:-}"
         if [ -n "$port" ]; then
             ((10#$port >= 1 && 10#$port <= 65535)) || fail "$key contains an invalid port"
@@ -119,19 +118,41 @@ validate_env() {
     done
 }
 
+validate_env() {
+    local file="$1" key
+    for key in POSTGRES_HOST POSTGRES_PORT POSTGRES_DB POSTGRES_USER POSTGRES_PASSWORD KABIPAY_JWT_SECRET; do
+        [ -n "$(get_env_value "$file" "$key")" ] || fail "$key is missing in $APP_DIR/.env"
+    done
+    validate_finance "$file"
+}
+validate_finance_container() {
+    local file="$1" container="$2" container_env key expected actual
+    # Capture internally; never log full inspect output or secret values.
+    container_env="$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' "$container")" || fail "Cannot inspect $container environment"
+    for key in KABIPAY_FINANCE_SERVICE_SECRET KABIPAY_FINANCE_EMPLOYEE_URL KABIPAY_FINANCE_PAYROLL_URL; do
+        expected="$(literal_value "$file" "$key")"
+        actual="$(printf '%s\n' "$container_env" | awk -F= -v key="$key" '$1 == key { print substr($0, length(key) + 2) }')"
+        [ "$actual" = "$expected" ] || fail "$container $key does not match the configured environment"
+    done
+}
 case "$MODE" in
+    --check-finance-file|--check-finance-container)
+        finance_file="${4:-}"
+        [[ "$finance_file" = /* ]] && [ -f "$finance_file" ] || fail 'Explicit absolute Finance environment file is required'
+        if [ "$MODE" = --check-finance-file ]; then
+            [ "$#" -eq 4 ] || fail 'Finance file check requires exactly one filename'
+        else
+            [ "$#" -eq 5 ] && [[ "$5" =~ ^[a-f0-9]{12,64}$ ]] || fail 'Finance container check requires an explicit container ID'
+        fi
+        validate_finance "$finance_file"
+        if [ "$MODE" = --check-finance-container ]; then validate_finance_container "$finance_file" "$5"; fi
+        echo '==> Finance configuration validation passed'
+        exit 0 ;;
     --check-only|--check-container)
         test -f .env || fail "$APP_DIR/.env does not exist"
         validate_env .env
         if [ "$MODE" = --check-container ]; then
-            # Capture values internally; neither secrets nor the complete inspect output are logged.
-            container_env="$(docker inspect -f '{{range .Config.Env}}{{println .}}{{end}}' kabipay-subgraphs)" ||
-                fail "Cannot inspect kabipay-subgraphs environment"
-            for key in KABIPAY_FINANCE_SERVICE_SECRET KABIPAY_FINANCE_EMPLOYEE_URL KABIPAY_FINANCE_PAYROLL_URL; do
-                expected="$(literal_value .env "$key")"
-                actual="$(printf '%s\n' "$container_env" | awk -F= -v key="$key" '$1 == key { print substr($0, length(key) + 2) }')"
-                [ "$actual" = "$expected" ] || fail "kabipay-subgraphs $key does not match the configured environment"
-            done
+            validate_finance_container .env kabipay-subgraphs
         fi
         echo '==> Finance configuration validation passed'
         exit 0 ;;

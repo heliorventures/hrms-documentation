@@ -1,105 +1,45 @@
 <#
 .SYNOPSIS
-    Upload the backup runner files to the VPS and optionally sync docker-compose.yml.
-
+Upload the independent HRMS backup runner and optionally its own Compose manifest.
 .DESCRIPTION
-    This script prepares /opt/apps/backup-runner on the VPS. It does not write
-    secrets into /opt/apps/.env. Configure BACKUP_* values manually on the VPS
-    before starting the backup profile.
-
+Prepares only /opt/apps/hrms/backup-runner, backups, images and env directories.
+Configure env/backup.env locally on the VPS; no secrets or root platform Compose
+are copied. PostgreSQL already exists on the configured external application network.
 .EXAMPLE
-    .\scripts\install-backup-runner.ps1 -VpsHost 159.198.70.19 -VpsUser deploy -SyncCompose
+.\scripts\install-backup-runner.ps1 -VpsHost example.invalid -VpsUser deploy -SyncCompose
 #>
-
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory = $true)]
-    [string]$VpsHost,
-
-    [string]$VpsUser = 'deploy',
-
-    [int]$SshPort = 22,
-
+    [Parameter(Mandatory=$true)][string]$VpsHost,
+    [string]$VpsUser='deploy',
+    [int]$SshPort=22,
     [string]$SshIdentityFile,
-
-    [string]$AppDir = '/opt/apps',
-
+    [string]$AppDir='/opt/apps/hrms',
     [switch]$SyncCompose
 )
-
-$ErrorActionPreference = 'Stop'
-
-$ProjectDocumentationDir = Split-Path -Parent $PSScriptRoot
-$BackupRunnerDir = Join-Path $ProjectDocumentationDir 'deploy/backup-runner'
-$ComposeTemplate = Join-Path $ProjectDocumentationDir 'deploy/docker-compose.prod.yml'
-
-if (-not (Test-Path $BackupRunnerDir)) {
-    throw "Missing backup runner directory: $BackupRunnerDir"
+$ErrorActionPreference='Stop'
+. (Join-Path $PSScriptRoot 'deploy/Remote.ps1')
+Assert-RemoteValue $AppDir 'AppDir'
+if (-not $AppDir.StartsWith('/') -or $AppDir -in @('/','/opt','/opt/apps') -or $AppDir.EndsWith('/')) { throw 'AppDir must be a dedicated absolute HRMS application directory.' }
+if ($SshIdentityFile -and -not (Test-Path -LiteralPath $SshIdentityFile -PathType Leaf)) { throw 'SSH identity file does not exist.' }
+$ProjectDocumentationDir=Split-Path -Parent $PSScriptRoot
+$BackupRunnerDir=Join-Path $ProjectDocumentationDir 'deploy/hrms/backup-runner'
+$ComposeTemplate=Join-Path $ProjectDocumentationDir 'deploy/hrms/backup.compose.yaml'
+$RunnerFiles=@('Dockerfile','backup-entrypoint.sh','backup-now.sh')
+foreach ($name in $RunnerFiles) {
+    if (-not (Test-Path -LiteralPath (Join-Path $BackupRunnerDir $name) -PathType Leaf)) { throw "Missing backup runner file: $name" }
 }
-if ($SyncCompose -and -not (Test-Path $ComposeTemplate)) {
-    throw "Missing compose template: $ComposeTemplate"
+if ($SyncCompose -and -not (Test-Path -LiteralPath $ComposeTemplate -PathType Leaf)) { throw 'Missing independent backup Compose template.' }
+foreach ($command in @('ssh','scp')) {
+    if (-not (Get-Command $command -ErrorAction SilentlyContinue)) { throw "$command is required but was not found on PATH" }
 }
-
-foreach ($command in @('ssh', 'scp')) {
-    if (-not (Get-Command $command -ErrorAction SilentlyContinue)) {
-        throw "$command is required but was not found on PATH"
-    }
-}
-
-$Remote = "${VpsUser}@${VpsHost}"
-$SshArgs = @('-p', $SshPort)
-$ScpArgs = @('-P', $SshPort)
-
-if (-not [string]::IsNullOrWhiteSpace($SshIdentityFile)) {
-    if (-not (Test-Path $SshIdentityFile)) {
-        throw "SSH identity file does not exist: $SshIdentityFile"
-    }
-    $SshArgs += @('-i', $SshIdentityFile)
-    $ScpArgs += @('-i', $SshIdentityFile)
-}
-
-function Run-Command {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Description,
-
-        [Parameter(Mandatory = $true)]
-        [scriptblock]$Action
-    )
-
-    Write-Host "==> $Description" -ForegroundColor Cyan
-    & $Action
-    if ($LASTEXITCODE -ne 0) {
-        throw "$Description failed with exit code $LASTEXITCODE"
-    }
-}
-
-if ($AppDir.Contains("'")) {
-    throw 'AppDir cannot contain a single quote'
-}
-
-$RemoteBackupDir = "$AppDir/backup-runner"
-
-Run-Command "Creating remote backup runner directory on $Remote" {
-    ssh @SshArgs $Remote "mkdir -p '$RemoteBackupDir' '$AppDir/backups'"
-}
-
-Run-Command "Uploading backup runner files to ${Remote}:$RemoteBackupDir" {
-    scp @ScpArgs (Join-Path $BackupRunnerDir 'Dockerfile') "${Remote}:$RemoteBackupDir/"
-    scp @ScpArgs (Join-Path $BackupRunnerDir 'backup-entrypoint.sh') "${Remote}:$RemoteBackupDir/"
-    scp @ScpArgs (Join-Path $BackupRunnerDir 'backup-now.sh') "${Remote}:$RemoteBackupDir/"
-}
-
-if ($SyncCompose) {
-    Run-Command "Uploading docker-compose.yml to ${Remote}:$AppDir" {
-        scp @ScpArgs $ComposeTemplate "${Remote}:$AppDir/docker-compose.yml"
-    }
-}
-
-Write-Host ""
-Write-Host "Backup runner files uploaded." -ForegroundColor Green
-Write-Host "Next steps on VPS:" -ForegroundColor Yellow
-Write-Host "  1. Edit $AppDir/.env and set BACKUP_* values."
-Write-Host "  2. Build: docker compose --profile backup build backup-runner"
-Write-Host "  3. Start: docker compose --profile backup up -d backup-runner"
-Write-Host "  4. Check logs: docker logs -f backup-runner"
+Initialize-Remote $VpsHost $VpsUser $SshPort $SshIdentityFile
+Invoke-Remote "set -eu; umask 077; mkdir -p '$AppDir/backup-runner' '$AppDir/backups' '$AppDir/images' '$AppDir/env'"
+foreach ($name in $RunnerFiles) { Copy-Remote (Join-Path $BackupRunnerDir $name) "$AppDir/backup-runner/$name" }
+if ($SyncCompose) { Copy-Remote $ComposeTemplate "$AppDir/backup.compose.yaml" }
+Write-Host 'HRMS backup files uploaded; no containers or backup schedules were started.'
+Write-Host "Configure $AppDir/env/backup.env with the existing BACKUP_* and POSTGRES_* variable names."
+Write-Host 'Verify existing schedules and backup/restore coverage before explicitly enabling this independent runner.'
+Write-Host "Build: docker compose -f '$AppDir/backup.compose.yaml' --profile backup build backup-runner"
+Write-Host "Start: docker compose -f '$AppDir/backup.compose.yaml' --profile backup up -d backup-runner"
+Write-Host "Logs: docker compose -f '$AppDir/backup.compose.yaml' --profile backup logs -f backup-runner"

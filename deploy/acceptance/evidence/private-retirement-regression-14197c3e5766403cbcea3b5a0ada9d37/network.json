@@ -1,0 +1,66 @@
+﻿{
+    "Name":  "private-retirement-regression-14197c3e5766403cbcea3b5a0ada9d37_default",
+    "Id":  "4229553ea0cf516dfe933f36ccd02581a2291154e468bef5ef2a4e296a2812b5",
+    "Created":  "2026-10-19T17:07:31.210874394Z",
+    "Scope":  "local",
+    "Driver":  "bridge",
+    "EnableIPv4":  true,
+    "EnableIPv6":  false,
+    "IPAM":  {
+                 "Driver":  "default",
+                 "Options":  null,
+                 "Config":  [
+                                {
+                                    "Subnet":  "172.23.0.0/16",
+                                    "Gateway":  "172.23.0.1"
+                                }
+                            ]
+             },
+    "Internal":  false,
+    "Attachable":  false,
+    "Ingress":  false,
+    "ConfigFrom":  {
+                       "Network":  ""
+                   },
+    "ConfigOnly":  false,
+    "Containers":  {
+                       "1443b21b10f08734e2a6abc2149904a3eda787b4fbd58748927f8ea453311143":  {
+                                                                                                "Name":  "private-retirement-regression-14197c3e5766403cbcea3b5a0ada9d37-clickhouse-1",
+                                                                                                "EndpointID":  "c50cfae4a64af2b64d73deb65693f0652c149c321098a26026c999a822fb2403",
+                                                                                                "MacAddress":  "be:5a:29:77:61:af",
+                                                                                                "IPv4Address":  "172.23.0.4/16",
+                                                                                                "IPv6Address":  ""
+                                                                                            },
+                       "1d3dc2d1035a5eccb456278279140a85dd2a03d2ecfa2a721ea0f3e9eaff8b57":  {
+                                                                                                "Name":  "private-retirement-regression-14197c3e5766403cbcea3b5a0ada9d37-postgres-1",
+                                                                                                "EndpointID":  "61596fc81898a242f08cf7cc3fc4b97a7a70e4455299f016b2582fa72d3a0cbc",
+                                                                                                "MacAddress":  "c2:dd:73:2a:72:64",
+                                                                                                "IPv4Address":  "172.23.0.5/16",
+                                                                                                "IPv6Address":  ""
+                                                                                            },
+                       "3f43f7988ef29a6ffeb27860fbeb4b957eab0441100bb59e9ef3ddeaecf823ca":  {
+                                                                                                "Name":  "private-retirement-regression-14197c3e5766403cbcea3b5a0ada9d37-kafka-1",
+                                                                                                "EndpointID":  "8093c020054c27bb5bbe4be264ce4c105aef91e142e75715141b4da6f526f3f2",
+                                                                                                "MacAddress":  "de:17:1a:a3:01:5f",
+                                                                                                "IPv4Address":  "172.23.0.2/16",
+                                                                                                "IPv6Address":  ""
+                                                                                            },
+                       "cf157f3c65de55b27968fb785ddb2fc5522cb956c75c3eed34e8b1204f28dd33":  {
+                                                                                                "Name":  "private-retirement-regression-14197c3e5766403cbcea3b5a0ada9d37-connect-1",
+                                                                                                "EndpointID":  "d65419246765ad7e8a37ef4e4cf040ba8cab9bf2bcfba0bea3e4ec6dbf72b2b1",
+                                                                                                "MacAddress":  "72:ce:3d:36:90:05",
+                                                                                                "IPv4Address":  "172.23.0.3/16",
+                                                                                                "IPv6Address":  ""
+                                                                                            }
+                   },
+    "Options":  {
+                    "com.docker.network.enable_ipv4":  "true",
+                    "com.docker.network.enable_ipv6":  "false"
+                },
+    "Labels":  {
+                   "com.docker.compose.config-hash":  "bbb6102121919e3c5f1b74a9df0d8f20d75720df95038408a0bc37364bc6c0a2",
+                   "com.docker.compose.network":  "default",
+                   "com.docker.compose.project":  "private-retirement-regression-14197c3e5766403cbcea3b5a0ada9d37",
+                   "com.docker.compose.version":  "2.39.1"
+               }
+}

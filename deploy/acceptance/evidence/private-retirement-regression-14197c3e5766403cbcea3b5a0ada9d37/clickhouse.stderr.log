@@ -1,0 +1,4 @@
+2026-10-19T17:07:37.036577306Z Processing configuration file '/etc/clickhouse-server/config.xml'.
+2026-10-19T17:07:37.038637623Z Merging configuration file '/etc/clickhouse-server/config.d/docker_related_config.xml'.
+2026-10-19T17:07:37.056734716Z Logging trace to /var/log/clickhouse-server/clickhouse-server.log
+2026-10-19T17:07:37.079148666Z Logging errors to /var/log/clickhouse-server/clickhouse-server.err.log

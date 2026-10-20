@@ -1,0 +1,14 @@
+﻿{
+    "project":  "private-retirement-regression-14197c3e5766403cbcea3b5a0ada9d37",
+    "removed_container_ids":  [
+                                  "1d3dc2d1035a5eccb456278279140a85dd2a03d2ecfa2a721ea0f3e9eaff8b57",
+                                  "cf157f3c65de55b27968fb785ddb2fc5522cb956c75c3eed34e8b1204f28dd33",
+                                  "1443b21b10f08734e2a6abc2149904a3eda787b4fbd58748927f8ea453311143",
+                                  "3f43f7988ef29a6ffeb27860fbeb4b957eab0441100bb59e9ef3ddeaecf823ca"
+                              ],
+    "removed_network_id":  "4229553ea0cf516dfe933f36ccd02581a2291154e468bef5ef2a4e296a2812b5",
+    "remaining_containers":  0,
+    "remaining_networks":  0,
+    "volumes_removed":  false,
+    "completed_at":  "2026-10-19T17:37:21.5958009Z"
+}

@@ -1,0 +1,3 @@
+{"topic":"organization.control.metadata.synthetic.eb7578b52179","partition":0,"offset":5,"state":"QUARANTINED","first_quarantine_offset":5,"code":"CONTROL_HISTORY_CONFLICT","observed_at":"2026-10-19 17:15:23.123"}
+{"topic":"organization.control.metadata.synthetic.eb7578b52179","partition":0,"offset":6,"state":"QUARANTINED","first_quarantine_offset":5,"code":"CONTROL_APPEND_ONLY","observed_at":"2026-10-19 17:15:23.220"}
+{"topic":"organization.control.retention.282a7b33bf9848b582ebc1b304e3aede","partition":0,"offset":0,"state":"READY","first_quarantine_offset":null,"code":"","observed_at":"2026-10-19 17:16:50.038"}

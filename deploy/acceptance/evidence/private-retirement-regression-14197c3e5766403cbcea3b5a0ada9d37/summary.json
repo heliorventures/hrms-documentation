@@ -1,0 +1,142 @@
+{
+  "project": "private-retirement-regression-14197c3e5766403cbcea3b5a0ada9d37",
+  "historical_passed": 6,
+  "unit_passed": 118,
+  "fixtures": [
+    {
+      "fixture": "isolated-acceptance",
+      "log": "01-isolated-acceptance.log",
+      "proof": {
+        "result": "PASS",
+        "broker_records": 6,
+        "logical_history_events": 3,
+        "latest_version": 3,
+        "tombstone_excluded": true,
+        "quarantine_metadata_only": true,
+        "watermark": "READY",
+        "independent_quarantine_checkpoints": 3
+      }
+    },
+    {
+      "fixture": "isolated-cdc",
+      "log": "02-isolated-cdc-rerun.log",
+      "proof": {
+        "result": "PASS",
+        "real_debezium_cdc_events": 2,
+        "snapshot_then_transactional_correction": true,
+        "rolled_back_outbox_not_visible": true,
+        "restricted_cdc_role_business_read_denied": true,
+        "corrected_logged_seconds": "1800"
+      }
+    },
+    {
+      "fixture": "control-cdc-acceptance",
+      "log": "03-control-cdc-acceptance.log",
+      "proof": {
+        "result": "PASS",
+        "actual_0113_and_0114_sequence": true,
+        "actual_store_sql": true,
+        "real_debezium_events": 4,
+        "principal_org_null_retained": true,
+        "proposed_installed_sequence": [
+          "1",
+          "2"
+        ],
+        "configuration_revision": [
+          "1",
+          "1"
+        ],
+        "rollback_not_captured": true,
+        "failed_sink_held_offset": "3",
+        "sink_recovery_replayed": true,
+        "replay_dedup": true,
+        "conflicts_quarantined": true,
+        "broker_offset": "7",
+        "checkpoint": "QUARANTINED",
+        "cdc_private_read_and_write_denied": true,
+        "restricted_ch_worker": true,
+        "reader_security_and_company_history_denied": true,
+        "reader_null_org_hidden": true
+      }
+    },
+    {
+      "fixture": "historical-retention-acceptance",
+      "log": "04-historical-retention-acceptance.log",
+      "proof": {
+        "result": "PASS",
+        "actual0116_restricted_classifier": true,
+        "separate_source_metadata_databases": true,
+        "queued_while_active_consumed_suspended_and_detached": true,
+        "retained_history_events": 2,
+        "current_projection_rows": 0,
+        "current_fence_rows": 0,
+        "unknown_and_pending_quarantined": 6,
+        "durable_quarantine_before_broker_offset": "4",
+        "old_fact_time_not_filtered": true,
+        "failed_history_sink_no_watermark": true,
+        "inactive_membership_eligibility": false,
+        "independent_historical_checkpoints": "READY",
+        "source_receipts_preserved": 4
+      }
+    },
+    {
+      "fixture": "control-cleanup-acceptance",
+      "log": "05-control-cleanup-acceptance.log",
+      "proof": {
+        "result": "PASS",
+        "real_pg_kafka_clickhouse": true,
+        "null_org_control_history_retained": true,
+        "source_hash_and_encrypted_restore_verified": true,
+        "stopped_legacy_offsets_verified": true,
+        "default_dryrun": true,
+        "missing_control_history_proof_denied": true,
+        "accepted_policy_fixed_source": true,
+        "synthetic_control_outbox_rows_deleted": 1,
+        "source_receipt_preserved": true,
+        "cleanup_receipt_atomic": true
+      }
+    },
+    {
+      "fixture": "gap-lifecycle-acceptance",
+      "log": "06-gap-lifecycle-acceptance.log",
+      "proof": {
+        "result": "PASS",
+        "separate_source_metadata_databases": true,
+        "independent_groups": 3,
+        "clickhouse_failure_inbox_advances": true,
+        "sink_restart_replayed": true,
+        "barriers": 6,
+        "missing_partition_denied": true,
+        "source_attendance_seconds": 3600,
+        "legacy_audit_private_fields_absent": true,
+        "legacy_manifest_hash_verified": true,
+        "archive_restore_verified": true,
+        "cdc_confirmation": "REAL_DEBEZIUM_AND_PERSISTED_CONNECT_OFFSET",
+        "legacy_group_retired_and_verified": true,
+        "cleanup_dryrun": true,
+        "cleanup_nonce_rejection": true,
+        "synthetic_outbox_rows_deleted": 1,
+        "receipts_and_legacy_audit_retained": true,
+        "cleanup_receipt_atomic": true
+      }
+    }
+  ],
+  "kafka_topics": 18,
+  "kafka_records": 71,
+  "kafka_consumer_groups": 15,
+  "clickhouse_tables": 11,
+  "cleanup": {
+    "project": "private-retirement-regression-14197c3e5766403cbcea3b5a0ada9d37",
+    "removed_container_ids": [
+      "1d3dc2d1035a5eccb456278279140a85dd2a03d2ecfa2a721ea0f3e9eaff8b57",
+      "cf157f3c65de55b27968fb785ddb2fc5522cb956c75c3eed34e8b1204f28dd33",
+      "1443b21b10f08734e2a6abc2149904a3eda787b4fbd58748927f8ea453311143",
+      "3f43f7988ef29a6ffeb27860fbeb4b957eab0441100bb59e9ef3ddeaecf823ca"
+    ],
+    "removed_network_id": "4229553ea0cf516dfe933f36ccd02581a2291154e468bef5ef2a4e296a2812b5",
+    "remaining_containers": 0,
+    "remaining_networks": 0,
+    "volumes_removed": false,
+    "completed_at": "2026-10-19T17:37:21.5958009Z"
+  }
+}

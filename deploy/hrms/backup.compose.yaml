@@ -1,0 +1,27 @@
+name: hrms-backup
+services:
+  backup-runner:
+    build:
+      context: ./backup-runner
+    image: helior-backup-runner:${KABIPAY_IMAGE_TAG:-helior-001}
+    env_file:
+      - ./env/backup.env
+    volumes:
+      - type: bind
+        source: ./images
+        target: /backup/images
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ./backups
+        target: /backup/work
+        bind:
+          create_host_path: false
+    profiles: [backup]
+    restart: unless-stopped
+    networks: [app-network]
+networks:
+  app-network:
+    external: true
+    name: ${HRMS_APP_NETWORK:-apps_app-network}

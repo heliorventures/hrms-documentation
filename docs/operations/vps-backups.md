@@ -9,7 +9,7 @@ The backup runner is separate from tenant setup and separate from normal applica
 The backup runner can upload:
 
 1. PostgreSQL database dump.
-2. Docker image tar archives from `/opt/apps/images`.
+2. Docker image tar archives from `/opt/apps/hrms/images`.
 
 It uploads to an S3-compatible bucket. Cloudflare R2 is the recommended target.
 
@@ -39,7 +39,9 @@ Set-Location D:\work\heliorventures\hrms-documentation
   -SyncCompose
 ```
 
-Use `-SyncCompose` when the VPS compose file does not yet include the `backup-runner` service.
+Use `-SyncCompose` to upload only `/opt/apps/hrms/backup.compose.yaml`. It never replaces the platform Compose file. The manifest starts only the backup runner and uses the existing external `apps_app-network`; it does not install PostgreSQL. Source files live in `deploy/hrms/backup-runner`.
+
+Existing `/opt/apps/backups`, image archives and running schedules are not moved or stopped. Review the current backup schedule and restore coverage before enabling the independent `hrms-backup` project, so two runners do not apply retention concurrently.
 
 ## Configure VPS environment
 
@@ -52,12 +54,20 @@ ssh deploy@159.198.70.19
 Edit:
 
 ```bash
-nano /opt/apps/.env
+nano /opt/apps/hrms/env/backup.env
 ```
+
+Copy only the required existing PostgreSQL and backup settings into this dedicated operator-managed file, retaining their current credentials. Restrict it to the deployment operator (`chmod 600 /opt/apps/hrms/env/backup.env`). Values below are placeholders. Set `HRMS_APP_NETWORK` here only if the existing network has a different reviewed name.
 
 Add or update:
 
 ```env
+POSTGRES_HOST=postgres
+POSTGRES_PORT=5432
+POSTGRES_DB=<existing-database>
+POSTGRES_USER=<existing-backup-role>
+POSTGRES_PASSWORD=<managed-password>
+
 BACKUP_ENABLED=true
 BACKUP_CRON=0 2 * * *
 BACKUP_TIMEZONE=Asia/Kolkata
@@ -114,15 +124,15 @@ BACKUP_CRON=0 2,10,18 * * *
 On the VPS:
 
 ```bash
-cd /opt/apps
-docker compose --profile backup build backup-runner
-docker compose --profile backup up -d backup-runner
+cd /opt/apps/hrms
+docker compose --env-file env/backup.env -f backup.compose.yaml --profile backup build backup-runner
+docker compose --env-file env/backup.env -f backup.compose.yaml --profile backup up -d backup-runner
 ```
 
 Check logs:
 
 ```bash
-docker logs -f backup-runner
+docker compose --env-file env/backup.env -f backup.compose.yaml --profile backup logs -f backup-runner
 ```
 
 ## Run a backup immediately
@@ -130,8 +140,8 @@ docker logs -f backup-runner
 Use this after first setup to verify bucket credentials:
 
 ```bash
-cd /opt/apps
-docker compose --profile backup run --rm -e BACKUP_ENABLED=true backup-runner /usr/local/bin/backup-now.sh
+cd /opt/apps/hrms
+docker compose --env-file env/backup.env -f backup.compose.yaml --profile backup run --rm -e BACKUP_ENABLED=true backup-runner /usr/local/bin/backup-now.sh
 ```
 
 Expected result:
@@ -142,8 +152,8 @@ Expected result:
 ## Stop backup runner
 
 ```bash
-cd /opt/apps
-docker compose --profile backup stop backup-runner
+cd /opt/apps/hrms
+docker compose --env-file env/backup.env -f backup.compose.yaml --profile backup stop backup-runner
 ```
 
 ## Restore database backup
@@ -170,5 +180,5 @@ PGPASSWORD="$POSTGRES_PASSWORD" pg_restore \
 
 - The backup runner uses a lock file, so overlapping cron runs skip instead of running concurrently.
 - The database backup uses `pg_dump -F c`, compressed afterward with gzip.
-- Bucket credentials live only in `/opt/apps/.env`; do not commit real keys.
+- Bucket credentials live only in `/opt/apps/hrms/env/backup.env`; do not commit real keys.
 - Keep `BACKUP_PRUNE_LOCAL_IMAGE_ARCHIVES=false` until offsite backup restore has been verified.

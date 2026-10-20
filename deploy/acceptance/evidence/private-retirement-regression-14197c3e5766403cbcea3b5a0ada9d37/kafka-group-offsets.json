@@ -1,0 +1,240 @@
+[
+  {
+    "groupId": "synthetic-gap-da094bdb5d8a470ba720777d2681ffdd.legacy",
+    "protocolType": "consumer",
+    "offsets": [
+      {
+        "topic": "organization.company.24a8ed11-de5d-40c5-988d-93f124b14b8c",
+        "partitions": [
+          {
+            "partition": 0,
+            "offset": "8",
+            "metadata": null
+          },
+          {
+            "partition": 1,
+            "offset": "11",
+            "metadata": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "groupId": "synthetic-gap-da094bdb5d8a470ba720777d2681ffdd.inbox.v2",
+    "protocolType": "consumer",
+    "offsets": [
+      {
+        "topic": "organization.company.24a8ed11-de5d-40c5-988d-93f124b14b8c",
+        "partitions": [
+          {
+            "partition": 0,
+            "offset": "8",
+            "metadata": null
+          },
+          {
+            "partition": 1,
+            "offset": "11",
+            "metadata": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "groupId": "historical-retention-40fbbeb5f72c",
+    "protocolType": "consumer",
+    "offsets": [
+      {
+        "topic": "organization.company.synthetic.history.40fbbeb5f72c",
+        "partitions": [
+          {
+            "partition": 0,
+            "offset": "4",
+            "metadata": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "groupId": "synthetic-gap-da094bdb5d8a470ba720777d2681ffdd.capture.v2",
+    "protocolType": "consumer",
+    "offsets": [
+      {
+        "topic": "organization.company.24a8ed11-de5d-40c5-988d-93f124b14b8c.company_fixture.organization_capture_marker",
+        "partitions": [
+          {
+            "partition": 0,
+            "offset": "3",
+            "metadata": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "groupId": "synthetic-cdc-1792430052517",
+    "protocolType": "consumer",
+    "offsets": [
+      {
+        "topic": "organization.company.975b627d-4422-4a6d-b764-8004ac970bab",
+        "partitions": [
+          {
+            "partition": 0,
+            "offset": "2",
+            "metadata": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "groupId": "synthetic-gap-da094bdb5d8a470ba720777d2681ffdd.reporting.v2",
+    "protocolType": "consumer",
+    "offsets": [
+      {
+        "topic": "organization.company.24a8ed11-de5d-40c5-988d-93f124b14b8c",
+        "partitions": [
+          {
+            "partition": 0,
+            "offset": "8",
+            "metadata": null
+          },
+          {
+            "partition": 1,
+            "offset": "11",
+            "metadata": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "groupId": "control-tap-eb7578b52179",
+    "protocolType": "consumer",
+    "offsets": [
+      {
+        "topic": "organization.control.metadata.synthetic.eb7578b52179",
+        "partitions": [
+          {
+            "partition": 0,
+            "offset": "7",
+            "metadata": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "groupId": "control-retention-replacement-282a7b33bf9848b582ebc1b304e3aede",
+    "protocolType": "consumer",
+    "offsets": [
+      {
+        "topic": "organization.control.retention.282a7b33bf9848b582ebc1b304e3aede",
+        "partitions": [
+          {
+            "partition": 0,
+            "offset": "1",
+            "metadata": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "groupId": "gap-capture-tap-da094bdb5d8a470ba720777d2681ffdd",
+    "protocolType": "consumer",
+    "offsets": [
+      {
+        "topic": "organization.company.24a8ed11-de5d-40c5-988d-93f124b14b8c.company_fixture.organization_capture_marker",
+        "partitions": [
+          {
+            "partition": 0,
+            "offset": "3",
+            "metadata": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "groupId": "synthetic-connect",
+    "protocolType": "connect",
+    "offsets": []
+  },
+  {
+    "groupId": "control-retention-legacy-282a7b33bf9848b582ebc1b304e3aede",
+    "protocolType": "consumer",
+    "offsets": [
+      {
+        "topic": "organization.control.retention.282a7b33bf9848b582ebc1b304e3aede",
+        "partitions": [
+          {
+            "partition": 0,
+            "offset": "1",
+            "metadata": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "groupId": "organization-synthetic-acceptance-1792429792486",
+    "protocolType": "consumer",
+    "offsets": [
+      {
+        "topic": "organization.synthetic.acceptance.isolated_acceptance_f92929de77f24608a0c923f9b58b5a2f",
+        "partitions": [
+          {
+            "partition": 0,
+            "offset": "6",
+            "metadata": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "groupId": "control-history-eb7578b52179",
+    "protocolType": "consumer",
+    "offsets": [
+      {
+        "topic": "organization.control.metadata.synthetic.eb7578b52179",
+        "partitions": [
+          {
+            "partition": 0,
+            "offset": "7",
+            "metadata": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "groupId": "owned-regression-proof-14197c3e5766403cbcea3b5a0ada9d37",
+    "protocolType": "consumer",
+    "offsets": []
+  },
+  {
+    "groupId": "synthetic-gap-da094bdb5d8a470ba720777d2681ffdd.history.v2",
+    "protocolType": "consumer",
+    "offsets": [
+      {
+        "topic": "organization.company.24a8ed11-de5d-40c5-988d-93f124b14b8c",
+        "partitions": [
+          {
+            "partition": 0,
+            "offset": "8",
+            "metadata": null
+          },
+          {
+            "partition": 1,
+            "offset": "11",
+            "metadata": null
+          }
+        ]
+      }
+    ]
+  }
+]

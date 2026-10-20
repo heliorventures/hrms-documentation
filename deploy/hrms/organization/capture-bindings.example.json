@@ -1,0 +1,9 @@
+{
+ "organization.company.REPLACE_TENANT_UUID.REPLACE_SOURCE_SCHEMA.organization_capture_marker":{
+  "tenant_id":"REPLACE_TENANT_UUID","organization_ids":["REPLACE_ORGANIZATION_UUID"],
+  "source_database":"REPLACE_FIXED_SOURCE_DATABASE","source_schema":"REPLACE_SOURCE_SCHEMA",
+  "topic_prefix":"organization.company.REPLACE_TENANT_UUID","connector_name":"organization-company-REPLACE_TENANT_UUID",
+  "company_topic":"organization.company.REPLACE_TENANT_UUID","expected_partitions":[0,1,2]
+  ,"connect_rest_url":"https://capture-connect-REPLACE_TENANT_UUID:8443/"
+ }
+}

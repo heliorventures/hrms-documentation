@@ -1,0 +1,48 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+        tls:
+          cert_file: /run/secrets/otel.crt
+          key_file: /run/secrets/otel.key
+          client_ca_file: /run/secrets/ca.crt
+      http:
+        endpoint: 0.0.0.0:4318
+        tls:
+          cert_file: /run/secrets/otel.crt
+          key_file: /run/secrets/otel.key
+          client_ca_file: /run/secrets/ca.crt
+processors:
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 128
+  batch:
+    timeout: 5s
+    send_batch_size: 256
+exporters:
+  otlp:
+    endpoint: ${env:OTEL_EXPORT_ENDPOINT}
+    tls:
+      ca_file: /run/secrets/ca.crt
+      cert_file: /run/secrets/otel-client.crt
+      key_file: /run/secrets/otel-client.key
+    sending_queue:
+      queue_size: 2048
+    retry_on_failure:
+      enabled: true
+      max_elapsed_time: 300s
+service:
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp]
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [otlp]

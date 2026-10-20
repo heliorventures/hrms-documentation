@@ -12,3 +12,8 @@ pgConnect.json
 
 # Private local-fallback documents created by Docker Compose must never enter source control.
 deploy/data/private-files/
+
+# Generated local release/configuration probes; source manifests remain under deploy/.
+.tmp/
+deploy/hrms/secrets/
+deploy/hrms/env/

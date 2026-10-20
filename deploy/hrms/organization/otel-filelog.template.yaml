@@ -1,0 +1,75 @@
+# Opt-in sidecar, one service + fixed company deployment per collector instance.
+# Contrib is required: the core distribution does not contain filelog/transform.
+extensions:
+  file_storage:
+    directory: /var/lib/otelcol/filelog
+    create_directory: true
+receivers:
+  filelog/source:
+    include: [/var/log/kabipay/approved-service.json.log]
+    start_at: end
+    storage: file_storage
+    max_log_size: 256KiB
+    max_concurrent_files: 1
+    include_file_name: false
+    include_file_path: false
+    retry_on_failure:
+      enabled: true
+      max_elapsed_time: 300s
+    resource:
+      service.name: ${env:SOURCE_SERVICE_NAME}
+      kabipay.deployment.tenant_id: ${env:SOURCE_TENANT_ID}
+      kabipay.log.binding: fixed-readonly-docker-json-file
+    operators:
+      - type: json_parser
+        id: docker_wrapper
+        parse_from: body
+        parse_to: attributes.docker
+        on_error: drop_quiet
+        timestamp:
+          parse_from: attributes.docker.time
+          layout_type: gotime
+          layout: "2006-01-02T15:04:05.999999999Z07:00"
+      - type: json_parser
+        id: rust_structured_json
+        parse_from: attributes.docker.log
+        parse_to: attributes.rust
+        on_error: drop_quiet
+processors:
+  memory_limiter:
+    check_interval: 5s
+    limit_mib: 128
+  transform/safe_diagnostics:
+    error_mode: propagate
+    log_statements:
+      - context: log
+        statements:
+          # Whitelist instead of guessing every possible private field name.
+          - set(severity_text, attributes["rust"]["level"]) where IsString(attributes["rust"]["level"]) and IsMatch(attributes["rust"]["level"], "^(TRACE|DEBUG|INFO|WARN|ERROR)$")
+          - set(body, "RUST_STRUCTURED_LOG")
+          - set(attributes["diagnostic.code"], attributes["rust"]["fields"]["code"]) where IsString(attributes["rust"]["fields"]["code"]) and IsMatch(attributes["rust"]["fields"]["code"], "^(ORGANIZATION_SOURCE_ACCEPTED|ORGANIZATION_SOURCE_REJECTED|ORGANIZATION_SOURCE_FAILED|ORGANIZATION_COMMAND_COMMITTED|ORGANIZATION_COMMAND_REJECTED|SYNTHETIC_FAILURE)$")
+          - keep_keys(attributes, ["diagnostic.code"])
+          # Drop all log-supplied tenant/org/user/token/body/error/message fields.
+  batch:
+    timeout: 5s
+    send_batch_size: 128
+exporters:
+  otlp:
+    endpoint: ${env:OTEL_EXPORT_ENDPOINT}
+    tls:
+      ca_file: /run/secrets/ca.crt
+      cert_file: /run/secrets/otel-client.crt
+      key_file: /run/secrets/otel-client.key
+    sending_queue:
+      queue_size: 1024
+      storage: file_storage
+    retry_on_failure:
+      enabled: true
+      max_elapsed_time: 300s
+service:
+  extensions: [file_storage]
+  pipelines:
+    logs/source:
+      receivers: [filelog/source]
+      processors: [memory_limiter, transform/safe_diagnostics, batch]
+      exporters: [otlp]

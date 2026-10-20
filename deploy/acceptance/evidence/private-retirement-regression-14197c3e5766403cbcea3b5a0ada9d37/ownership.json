@@ -1,0 +1,112 @@
+﻿[
+    {
+        "id":  "1d3dc2d1035a5eccb456278279140a85dd2a03d2ecfa2a721ea0f3e9eaff8b57",
+        "name":  "/private-retirement-regression-14197c3e5766403cbcea3b5a0ada9d37-postgres-1",
+        "project":  "private-retirement-regression-14197c3e5766403cbcea3b5a0ada9d37",
+        "service":  "postgres",
+        "image":  "postgres:16-alpine",
+        "state":  "running",
+        "memory":  268435456,
+        "cpus":  500000000,
+        "mounts":  [
+
+                   ]
+    },
+    {
+        "id":  "cf157f3c65de55b27968fb785ddb2fc5522cb956c75c3eed34e8b1204f28dd33",
+        "name":  "/private-retirement-regression-14197c3e5766403cbcea3b5a0ada9d37-connect-1",
+        "project":  "private-retirement-regression-14197c3e5766403cbcea3b5a0ada9d37",
+        "service":  "connect",
+        "image":  "quay.io/debezium/connect:3.2.4.Final",
+        "state":  "running",
+        "memory":  939524096,
+        "cpus":  1000000000,
+        "mounts":  [
+                       {
+                           "Type":  "volume",
+                           "Name":  "bfa139da3860e9c21fe6e0e2213f60afd56b4154072cb209147cb26ff44e8280",
+                           "Source":  "/var/lib/docker/volumes/bfa139da3860e9c21fe6e0e2213f60afd56b4154072cb209147cb26ff44e8280/_data",
+                           "Destination":  "/kafka/logs",
+                           "Driver":  "local",
+                           "Mode":  "",
+                           "RW":  true,
+                           "Propagation":  ""
+                       },
+                       {
+                           "Type":  "volume",
+                           "Name":  "4f7b8d7a0585abf5fbc56097f723002489bc9421daffae4754d3108c81e119c0",
+                           "Source":  "/var/lib/docker/volumes/4f7b8d7a0585abf5fbc56097f723002489bc9421daffae4754d3108c81e119c0/_data",
+                           "Destination":  "/kafka/config",
+                           "Driver":  "local",
+                           "Mode":  "",
+                           "RW":  true,
+                           "Propagation":  ""
+                       },
+                       {
+                           "Type":  "volume",
+                           "Name":  "ff3b4ec9550bc17799031e3c42d6428d3a67e9ce9d7a44097a6f56dea6f88edc",
+                           "Source":  "/var/lib/docker/volumes/ff3b4ec9550bc17799031e3c42d6428d3a67e9ce9d7a44097a6f56dea6f88edc/_data",
+                           "Destination":  "/kafka/data",
+                           "Driver":  "local",
+                           "Mode":  "",
+                           "RW":  true,
+                           "Propagation":  ""
+                       }
+                   ]
+    },
+    {
+        "id":  "1443b21b10f08734e2a6abc2149904a3eda787b4fbd58748927f8ea453311143",
+        "name":  "/private-retirement-regression-14197c3e5766403cbcea3b5a0ada9d37-clickhouse-1",
+        "project":  "private-retirement-regression-14197c3e5766403cbcea3b5a0ada9d37",
+        "service":  "clickhouse",
+        "image":  "clickhouse/clickhouse-server:25.8.12.129",
+        "state":  "running",
+        "memory":  1610612736,
+        "cpus":  1000000000,
+        "mounts":  [
+
+                   ]
+    },
+    {
+        "id":  "3f43f7988ef29a6ffeb27860fbeb4b957eab0441100bb59e9ef3ddeaecf823ca",
+        "name":  "/private-retirement-regression-14197c3e5766403cbcea3b5a0ada9d37-kafka-1",
+        "project":  "private-retirement-regression-14197c3e5766403cbcea3b5a0ada9d37",
+        "service":  "kafka",
+        "image":  "apache/kafka:4.0.2",
+        "state":  "running",
+        "memory":  671088640,
+        "cpus":  1000000000,
+        "mounts":  [
+                       {
+                           "Type":  "volume",
+                           "Name":  "a2c886ab746ee7ec068a98bd091d6ed3c6e7fcb3bbeec6ba6703d72f6ad4da07",
+                           "Source":  "/var/lib/docker/volumes/a2c886ab746ee7ec068a98bd091d6ed3c6e7fcb3bbeec6ba6703d72f6ad4da07/_data",
+                           "Destination":  "/etc/kafka/secrets",
+                           "Driver":  "local",
+                           "Mode":  "",
+                           "RW":  true,
+                           "Propagation":  ""
+                       },
+                       {
+                           "Type":  "volume",
+                           "Name":  "2f3847b994d69bdfc6d1e98c9461b2d64dd90f075412f92d0f1580791f5fb00b",
+                           "Source":  "/var/lib/docker/volumes/2f3847b994d69bdfc6d1e98c9461b2d64dd90f075412f92d0f1580791f5fb00b/_data",
+                           "Destination":  "/mnt/shared/config",
+                           "Driver":  "local",
+                           "Mode":  "",
+                           "RW":  true,
+                           "Propagation":  ""
+                       },
+                       {
+                           "Type":  "volume",
+                           "Name":  "449760037e5cf19b68fbe04abb2f29eb55f02b63bd71edc8f49ffda8c85496d8",
+                           "Source":  "/var/lib/docker/volumes/449760037e5cf19b68fbe04abb2f29eb55f02b63bd71edc8f49ffda8c85496d8/_data",
+                           "Destination":  "/var/lib/kafka/data",
+                           "Driver":  "local",
+                           "Mode":  "",
+                           "RW":  true,
+                           "Propagation":  ""
+                       }
+                   ]
+    }
+]

@@ -1,0 +1,206 @@
+[
+  {
+    "topic": "organization.company.0a880a49-ac40-4615-818f-2791ea88376b",
+    "partitions": [
+      {
+        "partition": 0,
+        "offset": "0",
+        "high": "0",
+        "low": "0"
+      }
+    ]
+  },
+  {
+    "topic": "organization.company.0a880a49-ac40-4615-818f-2791ea88376b.company_fixture.organization_capture_marker",
+    "partitions": [
+      {
+        "partition": 0,
+        "offset": "0",
+        "high": "0",
+        "low": "0"
+      }
+    ]
+  },
+  {
+    "topic": "organization.company.24a8ed11-de5d-40c5-988d-93f124b14b8c",
+    "partitions": [
+      {
+        "partition": 0,
+        "offset": "8",
+        "high": "8",
+        "low": "0"
+      },
+      {
+        "partition": 1,
+        "offset": "11",
+        "high": "11",
+        "low": "0"
+      }
+    ]
+  },
+  {
+    "topic": "organization.company.24a8ed11-de5d-40c5-988d-93f124b14b8c.company_fixture.organization_capture_marker",
+    "partitions": [
+      {
+        "partition": 0,
+        "offset": "3",
+        "high": "3",
+        "low": "0"
+      }
+    ]
+  },
+  {
+    "topic": "organization.company.24a8ed11-de5d-40c5-988d-93f124b14b8c.quarantine",
+    "partitions": [
+      {
+        "partition": 0,
+        "offset": "1",
+        "high": "1",
+        "low": "0"
+      }
+    ]
+  },
+  {
+    "topic": "organization.company.975b627d-4422-4a6d-b764-8004ac970bab",
+    "partitions": [
+      {
+        "partition": 0,
+        "offset": "2",
+        "high": "2",
+        "low": "0"
+      }
+    ]
+  },
+  {
+    "topic": "organization.company.975b627d-4422-4a6d-b764-8004ac970bab.company_fixture.organization_capture_marker",
+    "partitions": [
+      {
+        "partition": 0,
+        "offset": "0",
+        "high": "0",
+        "low": "0"
+      }
+    ]
+  },
+  {
+    "topic": "organization.company.synthetic.history.40fbbeb5f72c",
+    "partitions": [
+      {
+        "partition": 0,
+        "offset": "4",
+        "high": "4",
+        "low": "0"
+      }
+    ]
+  },
+  {
+    "topic": "organization.company.synthetic.history.quarantine.40fbbeb5f72c",
+    "partitions": [
+      {
+        "partition": 0,
+        "offset": "6",
+        "high": "6",
+        "low": "0"
+      }
+    ]
+  },
+  {
+    "topic": "organization.control.metadata.synthetic.eb7578b52179",
+    "partitions": [
+      {
+        "partition": 0,
+        "offset": "7",
+        "high": "7",
+        "low": "0"
+      }
+    ]
+  },
+  {
+    "topic": "organization.control.quarantine.eb7578b52179",
+    "partitions": [
+      {
+        "partition": 0,
+        "offset": "2",
+        "high": "2",
+        "low": "0"
+      }
+    ]
+  },
+  {
+    "topic": "organization.control.retention.282a7b33bf9848b582ebc1b304e3aede",
+    "partitions": [
+      {
+        "partition": 0,
+        "offset": "1",
+        "high": "1",
+        "low": "0"
+      }
+    ]
+  },
+  {
+    "topic": "organization.heartbeat.control_metadata_eb7578b52179",
+    "partitions": [
+      {
+        "partition": 0,
+        "offset": "4",
+        "high": "4",
+        "low": "0"
+      }
+    ]
+  },
+  {
+    "topic": "organization.heartbeat.organization.company.0a880a49-ac40-4615-818f-2791ea88376b",
+    "partitions": [
+      {
+        "partition": 0,
+        "offset": "0",
+        "high": "0",
+        "low": "0"
+      }
+    ]
+  },
+  {
+    "topic": "organization.heartbeat.organization.company.24a8ed11-de5d-40c5-988d-93f124b14b8c",
+    "partitions": [
+      {
+        "partition": 0,
+        "offset": "15",
+        "high": "15",
+        "low": "0"
+      }
+    ]
+  },
+  {
+    "topic": "organization.heartbeat.organization.company.975b627d-4422-4a6d-b764-8004ac970bab",
+    "partitions": [
+      {
+        "partition": 0,
+        "offset": "1",
+        "high": "1",
+        "low": "0"
+      }
+    ]
+  },
+  {
+    "topic": "organization.synthetic.acceptance.isolated_acceptance_f92929de77f24608a0c923f9b58b5a2f",
+    "partitions": [
+      {
+        "partition": 0,
+        "offset": "6",
+        "high": "6",
+        "low": "0"
+      }
+    ]
+  },
+  {
+    "topic": "organization.synthetic.quarantine",
+    "partitions": [
+      {
+        "partition": 0,
+        "offset": "0",
+        "high": "0",
+        "low": "0"
+      }
+    ]
+  }
+]

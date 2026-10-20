@@ -10,16 +10,18 @@
     HRMS repository names (hrms-svc, hrms-gateway, hrms-ui) and the older
     KabiPay repository names (kabipay-svc, kabipay-gateway, kabipay-ui) are
     both supported. Use -SvcDir, -GatewayDir, or -UiDir when a custom checkout
-    layout is required.
+    layout is required. Organization event workers are built from the service
+    checkout's integrations/organization-events folder; use -EventsDir to override.
+    Shared platform, Caddy and database configuration use separate operator steps.
 
 .EXAMPLE
     .\scripts\build-save-upload-images.ps1 -Tag helior-001 -VpsHost 159.198.70.19 -VpsUser deploy
 
 .EXAMPLE
-    .\scripts\build-save-upload-images.ps1 -Tag helior-001 -VpsHost 159.198.70.19 -VpsUser deploy -PublicBaseUrl https://heliorsoft.com -ApiBaseUrl https://api.heliorsoft.com -TenantId e6d4fc13-feb8-52a0-93bd-f66c795969b1 -DeployAfterUpload
+    .\scripts\build-save-upload-images.ps1 -Tag helior-001 -VpsHost 159.198.70.19 -VpsUser deploy -Manifest .\deploy\hrms\manifest.json -DeployAfterUpload
 
 .EXAMPLE
-    .\scripts\build-save-upload-images.ps1 -Tag helior-001 -VpsHost 159.198.70.19 -VpsUser deploy -SshPort 22 -RemoteDir /opt/apps/images
+    .\scripts\build-save-upload-images.ps1 -Tag helior-001 -VpsHost 159.198.70.19 -VpsUser deploy -SshPort 22 -RemoteDir /opt/apps/hrms/images
 
 .EXAMPLE
     .\scripts\build-save-upload-images.ps1 -Tag helior-001 -SkipUpload
@@ -39,7 +41,11 @@ param(
 
     [string]$SshIdentityFile,
 
-    [string]$RemoteDir = '/opt/apps/images',
+    [string]$RemoteDir = '/opt/apps/hrms/images',
+
+    [string]$AppDir = '/opt/apps/hrms',
+
+    [string]$Manifest,
 
     [string]$OutputDir = 'dist-images',
 
@@ -51,17 +57,15 @@ param(
 
     [string]$UiDir,
 
+    [string]$EventsDir,
+
     [string]$PublicBaseUrl,
 
     [string]$ApiBaseUrl,
 
-    [string]$TenantId,
-
     [string]$CaddySiteAddress,
 
     [switch]$DeployAfterUpload,
-
-    [switch]$WithWorker,
 
     [switch]$SkipDeploymentValidation,
 
@@ -69,23 +73,33 @@ param(
 )
 
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'deploy/Remote.ps1')
+if ($CaddySiteAddress) { throw 'CaddySiteAddress is deprecated: shared Caddy configuration uses the separate reviewed platform procedure, not HRMS image upload/deployment.' }
+Assert-RemoteValue $RemoteDir 'RemoteDir'
+Assert-RemoteValue $AppDir 'AppDir'
+if (-not $RemoteDir.StartsWith('/') -or $RemoteDir -eq '/') { throw 'RemoteDir must be an absolute HRMS image directory.' }
+if ($DeployAfterUpload -and -not $RemoteDir.StartsWith("$AppDir/")) { throw 'RemoteDir must be within AppDir for an HRMS application release.' }
+if ($Manifest -and -not (Test-Path -LiteralPath $Manifest -PathType Leaf)) { throw 'Manifest file does not exist.' }
 
 $ProjectDocumentationDir = Split-Path -Parent $PSScriptRoot
 $Root = Split-Path -Parent $ProjectDocumentationDir
 
-$OutDir = Join-Path $Root $OutputDir
+$OutDir = if ([System.IO.Path]::IsPathRooted($OutputDir)) { $OutputDir } else { Join-Path $Root $OutputDir }
 
 $SvcImage = "kabipay-svc:$Tag"
 $GatewayImage = "kabipay-gateway:$Tag"
 $UiImage = "kabipay-ui:$Tag"
+$EventsImage = "kabipay-organization-events:$Tag"
 
 $SvcTarName = "kabipay-svc-$Tag.tar"
 $GatewayTarName = "kabipay-gateway-$Tag.tar"
 $UiTarName = "kabipay-ui-$Tag.tar"
+$EventsTarName = "kabipay-organization-events-$Tag.tar"
 
 $SvcTar = Join-Path $OutDir $SvcTarName
 $GatewayTar = Join-Path $OutDir $GatewayTarName
 $UiTar = Join-Path $OutDir $UiTarName
+$EventsTar = Join-Path $OutDir $EventsTarName
 $DeployScript = Join-Path $PSScriptRoot 'deploy-on-vps.ps1'
 
 function Require-Command {
@@ -193,12 +207,8 @@ if ($SkipUpload -and $DeployAfterUpload) {
 }
 
 if ($DeployAfterUpload) {
-    if ([string]::IsNullOrWhiteSpace($PublicBaseUrl)) {
-        throw "PublicBaseUrl is required when DeployAfterUpload is set"
-    }
-
-    if ([string]::IsNullOrWhiteSpace($TenantId)) {
-        throw "TenantId is required when DeployAfterUpload is set"
+    if ([string]::IsNullOrWhiteSpace($Manifest) -and [string]::IsNullOrWhiteSpace($PublicBaseUrl)) {
+        throw "Manifest or PublicBaseUrl is required when DeployAfterUpload is set"
     }
 
     if (-not (Test-Path $DeployScript)) {
@@ -206,16 +216,9 @@ if ($DeployAfterUpload) {
     }
 }
 
-$SshArgs = @('-p', $SshPort)
-$ScpArgs = @('-P', $SshPort)
-
-if (-not [string]::IsNullOrWhiteSpace($SshIdentityFile)) {
-    if (-not (Test-Path $SshIdentityFile)) {
-        throw "SSH identity file does not exist: $SshIdentityFile"
-    }
-
-    $SshArgs += @('-i', $SshIdentityFile)
-    $ScpArgs += @('-i', $SshIdentityFile)
+if (-not $SkipUpload) {
+    if ($SshIdentityFile -and -not (Test-Path -LiteralPath $SshIdentityFile -PathType Leaf)) { throw 'SSH identity file does not exist.' }
+    Initialize-Remote $VpsHost $VpsUser $SshPort $SshIdentityFile
 }
 
 if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
@@ -249,14 +252,13 @@ $UiDir = Resolve-SourceDirectory `
     -Candidates @('hrms-ui', 'kabipay-ui') `
     -OverrideParameterName '-UiDir'
 
-if ($RemoteDir.Contains("'")) {
-    throw "RemoteDir cannot contain a single quote"
-}
+$EventsDir = Resolve-SourceDirectory -Role 'Organization events' -ProvidedPath $EventsDir -SourceRootPath $SvcDir -Candidates @('integrations/organization-events') -OverrideParameterName '-EventsDir'
 
 Write-Host "==> Source directories" -ForegroundColor Cyan
 Write-Host "  Service: $SvcDir"
 Write-Host "  Gateway: $GatewayDir"
 Write-Host "  UI:      $UiDir"
+Write-Host "  Events:  $EventsDir"
 
 New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
 
@@ -272,6 +274,10 @@ Run-Command "Building $UiImage" {
     docker build -t $UiImage $UiDir
 }
 
+Run-Command "Building $EventsImage" {
+    docker build -t $EventsImage $EventsDir
+}
+
 Run-Command "Saving $SvcImage to $SvcTar" {
     docker save $SvcImage -o $SvcTar
 }
@@ -284,26 +290,40 @@ Run-Command "Saving $UiImage to $UiTar" {
     docker save $UiImage -o $UiTar
 }
 
+Run-Command "Saving $EventsImage to $EventsTar" {
+    docker save $EventsImage -o $EventsTar
+}
+
 if ($SkipUpload) {
     Write-Host ""
     Write-Host "Upload skipped. Image archives are ready:" -ForegroundColor Green
     Write-Host "  $SvcTar"
     Write-Host "  $GatewayTar"
     Write-Host "  $UiTar"
+    Write-Host "  $EventsTar"
     exit 0
 }
 
-$Remote = "${VpsUser}@${VpsHost}"
+$Remote = $script:RemoteTarget
 $DeploymentStamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $RemoteArchiveDir = "$RemoteDir/archive/$DeploymentStamp"
-$RemotePrepareCommand = "set -eu; mkdir -p '$RemoteDir' '$RemoteDir/archive'; if ls '$RemoteDir'/kabipay-*.tar >/dev/null 2>&1; then mkdir -p '$RemoteArchiveDir'; mv '$RemoteDir'/kabipay-*.tar '$RemoteArchiveDir'/; fi"
+$RemotePrepareCommand = @"
+set -eu
+umask 077
+mkdir -p '$RemoteDir'
+for image in '$RemoteDir'/kabipay-svc-*.tar '$RemoteDir'/kabipay-gateway-*.tar '$RemoteDir'/kabipay-ui-*.tar '$RemoteDir'/kabipay-organization-events-*.tar; do
+    [ -f "`$image" ] || continue
+    mkdir -p '$RemoteArchiveDir'
+    mv -- "`$image" '$RemoteArchiveDir'/
+done
+"@
 
 Run-Command "Preparing remote image directory and archive on $Remote" {
-    ssh @SshArgs $Remote $RemotePrepareCommand
+    Invoke-Remote $RemotePrepareCommand
 }
 
 Run-Command "Uploading image archives to ${Remote}:$RemoteDir" {
-    scp @ScpArgs $SvcTar $GatewayTar $UiTar "${Remote}:$RemoteDir/"
+    Invoke-Native 'scp' ($script:ScpArguments + @($SvcTar,$GatewayTar,$UiTar,$EventsTar,"${Remote}:$RemoteDir/"))
 }
 
 if ($DeployAfterUpload) {
@@ -313,34 +333,17 @@ if ($DeployAfterUpload) {
         VpsUser = $VpsUser
         SshPort = $SshPort
         PublicBaseUrl = $PublicBaseUrl
-        TenantId = $TenantId
+        AppDir = $AppDir
+        ImageDir = $RemoteDir
         Deploy = $true
     }
-
-    if (-not [string]::IsNullOrWhiteSpace($ApiBaseUrl)) {
-        $DeployArgs.ApiBaseUrl = $ApiBaseUrl
-    }
-
-    if (-not [string]::IsNullOrWhiteSpace($SshIdentityFile)) {
-        $DeployArgs.SshIdentityFile = $SshIdentityFile
-    }
-
-    if (-not [string]::IsNullOrWhiteSpace($CaddySiteAddress)) {
-        $DeployArgs.CaddySiteAddress = $CaddySiteAddress
-    }
-
-    if ($WithWorker) {
-        $DeployArgs.WithWorker = $true
-    }
-
-    if ($SkipDeploymentValidation) {
-        $DeployArgs.SkipValidation = $true
-    }
-
+    if ($Manifest) { $DeployArgs.Manifest = $Manifest }
+    if ($ApiBaseUrl) { $DeployArgs.ApiBaseUrl = $ApiBaseUrl }
+    if ($SshIdentityFile) { $DeployArgs.SshIdentityFile = $SshIdentityFile }
+    if ($SkipDeploymentValidation) { $DeployArgs.SkipValidation = $true }
     Run-Command "Deploying uploaded images on $Remote" {
         & $DeployScript @DeployArgs
     }
-
     exit 0
 }
 
@@ -348,4 +351,4 @@ Write-Host ""
 Write-Host "Done. Image archives uploaded successfully." -ForegroundColor Green
 Write-Host ""
 Write-Host "Next deployment command:" -ForegroundColor Yellow
-Write-Host "  .\scripts\deploy-on-vps.ps1 -Tag $Tag -VpsHost $VpsHost -VpsUser $VpsUser -PublicBaseUrl https://heliorsoft.com -ApiBaseUrl https://api.heliorsoft.com -TenantId <tenant-id> -Deploy"
+Write-Host "  .\scripts\deploy-on-vps.ps1 -Tag $Tag -VpsHost $VpsHost -VpsUser $VpsUser -Manifest <reviewed-manifest.json> -AppDir $AppDir -ImageDir $RemoteDir -Deploy"
