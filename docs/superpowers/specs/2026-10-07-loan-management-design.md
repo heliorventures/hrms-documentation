@@ -2,7 +2,7 @@
 
 Date: 7 October 2026
 
-Status: **Review draft. Requirements below are confirmed; proposed rules require review.**
+Status: **Combined service architecture approved on 7 October 2026. Company-specific policies remain explicit configuration and review items. UI review is the next stage.**
 
 Scope of this stage: architecture and functional design only. No application, database, deployment or Pencil changes are included.
 
@@ -20,7 +20,7 @@ The agreed sequence is: review this functional/architecture design, design the s
 
 | ID | Requirement confirmed in this discussion |
 | --- | --- |
-| R1 | A separate Loan Management microservice and UI module. |
+| R1 | Separate Loan and Payroll business modules hosted in the existing Payroll service, plus a distinct Loan Management UI module. This approved boundary supersedes the earlier request for a separate Loans microservice. |
 | R2 | Employee request, review/approval, disbursement tracking, repayment tracking and outstanding balance. |
 | R3 | Payroll recovery is selectable. HR sets the normal monthly amount and can change future amounts or override/skip a particular month. |
 | R4 | HR decides interest treatment at approval under company policy. The discussion permits interest-free, a one-time charge/percentage, and reducing-balance interest. The system performs the calculations. |
@@ -37,7 +37,7 @@ These are static findings from the current checkout, not claims about a deployed
 
 | Verified integration point | Consequence for Loans |
 | --- | --- |
-| Rust tenant subgraphs run as separate processes; the gateway stitches their GraphQL schemas. Services use shared PostgreSQL tenant schemas. | Add a subgraph using the established service and tenant-resolution patterns. A new service does not itself require a new database. |
+| Rust tenant subgraphs run as separate processes; the gateway stitches their GraphQL schemas. Services use shared PostgreSQL tenant schemas. | Extend the existing Payroll subgraph with separately owned Loans and FNF financial modules, using established tenant-resolution patterns. |
 | Payroll has a repeatable draft calculation, revision/fingerprint validation, and a transaction that persists payslips and marks the cycle processed. | Include loan recovery in the reviewed draft and the same finalization boundary. |
 | The payroll fingerprint currently locks/hashes its explicit input tables; no loan inputs exist in that set. | Add loan version validation and a consistent lock protocol; do not leave recovery outside stale-draft protection. |
 | Payroll distinguishes employee deductions from salary already paid, which reduces the remaining salary payment. | Loan recovery must have its own source-linked deduction; do not reuse the salary-already-paid field. |
@@ -50,42 +50,52 @@ The employee model examined is tenant-owned and does not expose a separate emplo
 
 ## 3. Architecture and service ownership
 
-### Two approaches considered
+### Approved approach and alternative considered
 
 | Approach | Benefits | Cost / limitation |
 | --- | --- | --- |
-| **A. Separate Loans service, owned tables in the existing tenant database, loan-owned transactional interface** — recommended | Fits the current platform; payroll/FNF and loan postings can commit atomically; no per-employee network calls during payroll. | Financial integration shares a versioned Rust domain/storage contract. This is not physical database isolation, and incompatible releases require coordination. |
-| **B. Separate Loans service and its own database, with reservation/commit reconciliation across services** | Strong storage isolation and exclusive process-level writes. | Requires durable reservations, inbox/outbox delivery, pending payroll finalization, cancellation/compensation, reconciliation and recovery tooling. A network call alone cannot atomically finalize two databases. |
+| **A. Separate Loans, Payroll and FNF financial modules in the existing Payroll service — approved** | Loans owns its repository; Payroll calls a module interface. Payroll/FNF and loan postings commit atomically without per-employee network calls. | Modules share a process and deployment. Their code ownership and interfaces must be enforced. |
+| **B. Separate Loans microservice with exclusive access to its tables** | Independent deployment and strict service-level storage ownership. | Requires a batch API, durable recovery reservations, private events, pending finalization, cancellation and reconciliation. A network call alone cannot atomically finalize independent service transactions. |
 
-Recommendation A implements the requested separate microservice without treating the platform as if it already had isolated service databases. If physical isolation is a requirement, select B before implementation; it needs its own detailed failure protocol.
+The user selected A after reviewing the integration trade-off. The earlier separate-service/shared-library proposal is superseded: it centralized logic but still allowed the Payroll process to invoke loan storage from another service's library. The selected design makes Loans a module inside the service that owns financial processing. Independent deployment is outside this selected boundary.
 
 ### Proposed components
 
-- `kabipay-loans`: independently running Rust GraphQL service; public loan queries and commands, authentication, entitlement checks and permission enforcement.
+- `kabipay-payroll`: existing running GraphQL service; hosts Payroll, Loans and FNF financial modules. Each module exposes its own queries/commands and permission/entitlement checks.
 - `kabipay-loans-domain`: typed terms, currency-safe calculations, schedules, allocation rules and state transitions. No dependency on Payroll or Employee service crates.
-- `kabipay-loans-store`: loan-owned persistence and narrow transaction-aware operations. It receives the caller's transaction and validated actor/scope; it cannot open a second connection or commit the caller's transaction.
-- Payroll and Employee/FNF call the loan-owned integration interface for quotes, validation and posting. They do not construct loan-table updates or duplicate loan arithmetic.
+- Loan application/storage code: owns all loan entity access, queries, locks and mutations behind a module interface. Storage implementation stays private to Loans. It receives the service's transaction and validated actor/scope; it cannot open a second connection or commit the caller's transaction.
+- Payroll and FNF financial code call the Loan module for quotes, validation and posting. They do not import loan entities/repositories, construct loan-table SQL or duplicate loan arithmetic. The same-process boundary is code ownership rather than database-user isolation.
+- Employee service owns resignation and clearance. It obtains financial reviews and records decision references through the finance API; it does not access loan tables or perform FNF financial writes.
 - The React `loans` module uses generated GraphQL operations through the existing gateway. The browser does not coordinate financial commits.
 
-Loans owns requests, policy versions, approved terms, schedules, disbursements, loan ledger entries and loan-specific recovery arrangements. Payroll owns salary calculation, cycles and payslip snapshots. Employee owns resignation, clearance and FNF lifecycle. Existing workflow owns configured approval steps; existing Tax owns statutory benefit valuation/withholding.
+Loans owns requests, policy versions, approved terms, schedules, disbursements, loan ledger entries and loan-specific recovery arrangements. Payroll owns salary calculation, cycles and payslip snapshots. The FNF financial module owns settlement calculation, source allocations and financial finalization inside the Payroll service. Employee owns resignation, employment status, clearance and the HR approval lifecycle. Existing workflow owns configured approval steps; existing Tax owns statutory benefit valuation/withholding.
 
 ```mermaid
 flowchart LR
   E[Employee and HR loan screens] --> G[Existing GraphQL gateway]
-  G --> L[Loan Management service]
-  G --> P[Payroll service]
-  G --> X[Employee and FNF service]
-  L --> C[Loan-owned domain and transaction interface]
-  P --> C
-  X --> C
-  C --> D[(Owned loan tables in tenant database)]
+  G --> X[Employee service: resignation and clearance]
+  subgraph Finance[Existing Payroll service]
+    A[Finance API]
+    P[Payroll module]
+    F[FNF financial module]
+    L[Loan module and private repository]
+    A --> P
+    A --> F
+    A --> L
+    P -->|Recovery interface| L
+    F -->|Recovery interface| L
+  end
+  G --> A
+  X -->|Financial review and decision API| A
+  L --> D[(Loan tables)]
   P --> S[(Payroll and payslip tables)]
-  X --> F[(Separation and FNF tables)]
-  C --> O[(Private internal event queue)]
+  F --> T[(FNF financial tables)]
+  X --> H[(Separation and clearance tables)]
+  L --> O[(Private internal event queue)]
   O --> N[Authorized notifications and reconciliation]
 ```
 
-The shared transaction is the financial integration boundary; the GraphQL service remains the employee/HR entry point. This storage decision must be included in the design approval.
+Payroll/payslip posting and loan recovery share one financial transaction inside the selected service; FNF set-off and loan recovery share the same boundary. Resignation approval remains a separate HR operation and requires the finance-review coordination described in section 9. Public Loan module operations still enforce their own subscription and capabilities even though hosted by the Payroll service.
 
 ## 4. Loan lifecycle
 
@@ -164,6 +174,8 @@ Skipping payroll does not imply an interest holiday. An explicit setting disting
 
 External repayments require a recorded receipt with value date, amount, source/reference and recorder. Draft or employee-reported receipts have no balance effect until an authorized confirmation. Mixed-mode payments reduce the same loan balance; they are never a separate unreconciled “manual total”.
 
+**Confirmed correction ownership and treatment:** HR manages Loans and Payroll. Keep issued payslips unchanged; HR approves a current loan-ledger adjustment linked to the original payment and a reviewed correction preview.
+
 Financial value dates must not silently rewrite an already posted accrual or finalized payroll/FNF boundary. Earlier effective information requires a correction preview and approved adjustment at an open posting date, retaining its original occurrence date as evidence. No backdated edit deletes or recalculates a historical payslip.
 
 ## 7. Ledger, balances and financial invariants
@@ -204,6 +216,8 @@ Waiver and accounting write-off are not synonyms for repayment or an HR schedule
 5. Show the intended amount, allowed amount and any shortfall. Recommended first behaviour: require HR review for insufficient salary; automatic partial recovery/deferral is allowed only if the company's policy explicitly selects it. A final instalment is capped to the remaining payable amount.
 6. Add loan principal/interest as source-linked employee deductions. Never accept a free-text/manual `LOAN_*` line as equivalent to a ledger-backed recovery.
 
+**Payment timing confirmed on 2026-10-09:** HR can calculate and review payroll before its selected payment date. It remains a preview: no issued payslip or loan repayment is posted. Finalization is allowed on or after that date in the company's configured timezone, with all existing revision, quote and employee-review checks still required. Recheck the date when reading a draft and inside finalization; a cached readiness flag cannot authorize an early posting. The recovery value date stays the reviewed payment date. Changing it requires a new payroll calculation and review.
+
 For clarity, proposed salary arithmetic is:
 
 `net salary = earnings - existing employee deductions - loan recovery`
@@ -214,13 +228,13 @@ Loan principal is a receivable recovery, not an earnings component or an automat
 
 Payroll imports that already include loan recovery must identify and reconcile the loan/source allocations before posting; do not add the computed recovery a second time. Unmapped imported loan deductions become review items. Historical opening loans must not replay old deductions into already finalized payroll.
 
-### Finalization under recommended architecture A
+### Finalization under approved architecture A
 
-Extend the existing payroll transaction: acquire the established payroll input locks, then the loan employee guards and loan account locks in stable order; reload loan input versions; reject a stale quote; persist the payslip, loan recovery allocations/ledger entries, immutable statement, audit record and private events; mark the cycle processed; commit once. Any failure rolls back the full financial operation.
+Extend the existing payroll transaction: acquire the established payroll input locks, then ask the Loan module to acquire employee/account guards in stable order and validate input versions; reject a stale quote; persist the payslip, ask Loans to post recovery allocations/ledger entries, persist the immutable statement, audit record and private events; mark the cycle processed; commit once. Any failure rolls back the full financial operation. Payroll orchestration receives loan versions and locks through the module interface; it does not query loan storage itself.
 
 All loan commands advance an employee-level loan revision, including new loans and effective policy/schedule changes. This catches a new account created after payroll calculation, not just changes to accounts that were already in the draft. Fingerprint the relevant revisions and terms; do not hash unlimited historical ledger rows for each payroll calculation.
 
-New loan operations use the same employee/account lock protocol. Do not acquire a loan lock and then attempt to mutate payroll input tables in reverse order. FNF and separation paths must adopt the same resource ordering. Set bounded lock timeouts, return actionable retry/conflict errors and retry only the whole idempotent transaction. PostgreSQL documents the blocking and deadlock behaviour on which this proposal depends. [PostgreSQL 16 explicit locking](https://www.postgresql.org/docs/16/explicit-locking.html)
+New loan operations use the same employee/account lock protocol. Do not acquire a loan lock and then attempt to mutate payroll input tables in reverse order. The FNF financial module adopts the same resource ordering. The Employee service uses the finance API rather than taking loan locks. Set bounded lock timeouts, return actionable retry/conflict errors and retry only the whole idempotent transaction. PostgreSQL documents the blocking and deadlock behaviour on which this proposal depends. [PostgreSQL 16 explicit locking](https://www.postgresql.org/docs/16/explicit-locking.html)
 
 There is no financial posting during draft calculation, payslip preview, PDF generation, download or notification delivery. Proposed payroll accounting point is **finalization**, not confirmation of an external salary bank transfer; the receipt channel is labelled “Payroll deduction”. Reversing a finalized recovery requires a linked authorized payroll correction and loan reversal, not editing either balance alone.
 
@@ -247,7 +261,11 @@ HR/Admin records one or a combination of:
 - A continuing post-exit repayment arrangement for the remaining debt, including dates, amounts, responsible follow-up owner and agreement evidence.
 - Pending finance review, which keeps the financial decision unresolved until an authorized approver resolves it.
 
-The approval command references the reviewed loan version, separation version and decision version. It rechecks them under the common lock protocol. A changed repayment, new disbursement, rate/schedule change or last working date requires a refreshed preview; a stale modal cannot approve old numbers. The approval transaction records the decision and links it to the normal FNF/clearance artifacts.
+The Employee service's approval command references the reviewed loan version, separation version and financial decision version. Finance validates those values through an idempotent review-and-authorize API. A changed repayment, new disbursement, rate/schedule change or last working date requires a refreshed preview; a stale modal cannot approve old numbers.
+
+Before Employee commits HR approval, Finance persists a short-lived approval guard covering the reviewed loan inputs and arrangement. Loan writers respect that guard until the registered Employee approval operation is confirmed or cancelled. Employee records the finance authorization reference together with its separation/clearance transition and a private durable confirmation event in its own transaction. Finance confirms the arrangement and prepares/links the FNF financial draft from that event; synchronous delivery may speed up the UI but is not the durability mechanism. No network call runs while a database transaction holds financial locks.
+
+If a process fails between these steps, reconciliation reads the registered Employee operation through its API. Release a guard only after authoritative committed/cancelled status, rather than assuming a timeout means failure. Unknown status remains visibly pending and cannot be treated as success. This handshake coordinates the infrequent HR approval; it does not post repayment or claim one transaction spans both services. Financial finalization remains wholly inside Payroll. The implementation plan must specify the authorization/operation states and retries before writing this integration.
 
 **Resignation approval does not mean loan settlement.** It does not post a recovery or automatically close the loan. HR/Admin retains the discretion already agreed, while the financial record remains truthful.
 
@@ -255,7 +273,7 @@ The approval command references the reviewed loan version, separation version an
 
 Separate manually entered **other recoveries** from calculated **loan recovery lines**. The aggregate remains visible for existing consumers, but the same loan amount cannot exist in both buckets. Detect/migrate existing drafts explicitly; do not reinterpret every legacy recovery as a loan.
 
-Requote the loan at the selected settlement value date and subtract any payroll/external recovery already posted. Require review if the approved settlement snapshot has changed. Post the actual set-off and FNF finalization atomically through the loan-owned interface; approval-only earmarks and payroll drafts do not count as money recovered.
+The FNF financial module in Payroll requotes the loan through the Loan module at the selected settlement value date and subtracts any payroll/external recovery already posted. Require review if the approved settlement snapshot has changed. Post the actual set-off and FNF finalization atomically through the Loan module; approval-only earmarks and payroll drafts do not count as money recovered. The Employee service receives the resulting settlement status/reference through the finance API or private confirmed event; it does not write these amounts.
 
 Each available payout component retains its own source and paid/settled amount. Final salary already represented in the final payroll is shown by reference and is not created again as FNF earnings. Likewise, a loan recovery already posted through final payroll cannot be included a second time in FNF. Finalization checks these source allocations under the shared transaction; a remaining salary payment and an FNF payable must not both claim the same underlying amount.
 
@@ -283,7 +301,7 @@ Existing offboarding can disable employee access. This design does **not** autom
 | `loan_posting` / `loan_ledger_entry` / `loan_allocation` | Immutable financial groups, signed principal/interest entries, source links and allocation breakdown; linked reversals. |
 | `loan_unapplied_credit` | Confirmed excess receipt, allocation/refund history and remaining amount; not negative debt. |
 | `loan_employee_state` | Employee loan revision and synchronization guard; new accounts and changes invalidate prior quotes. |
-| `loan_exit_arrangement` | Separation and loan, decision, source-specific intended recovery, residual schedule, versions and accountable owner. |
+| `loan_exit_arrangement` / `loan_exit_approval_guard` | Separation and loan, financial decision, source-specific recovery, residual schedule, versions, accountable owner, registered HR operation and authorization confirmation/cancellation state. |
 | `loan_command_receipt` / `loan_audit_event` | Idempotency result/hash; actor and before/after versions, reasons and references. |
 | `loan_internal_outbox` / `loan_consumer_receipt` | Private events, per-consumer delivery/deduplication state and retry evidence. |
 
@@ -304,6 +322,8 @@ Final GraphQL names follow repository naming/generation conventions. The contrac
 
 Internal integration operations are `quoteRecoveries`, `validateRecoveryQuote`, `postPayrollRecoveries`, `prepareExitReview`, `validateExitDecision` and `postFnfRecoveries`. They carry tenant, employee, trusted source, source revision, actor scope, value date and allocation evidence. Quotes are previews, not long-lived reservations.
 
+Payroll/FNF uses the in-process Loan interface. Employee uses Finance's `prepareExitApproval`, `confirmExitApproval` and `cancelExitApproval` commands, with an operation-status query for recovery from failure. Each remote operation validates service/actor authority, tenant, employee and separation binding. A finance authorization is valid only for its registered HR operation and reviewed versions; browser input cannot substitute a different separation or actor.
+
 Define business errors including `LOAN_TERMS_INCOMPLETE`, `LOAN_POLICY_UNAVAILABLE`, `LOAN_REVIEW_STALE`, `LOAN_RECOVERY_EXCEEDS_CAPACITY`, `LOAN_CURRENCY_MISMATCH`, `LOAN_SOURCE_ALREADY_POSTED`, `LOAN_CORRECTION_REQUIRED` and `LOAN_EXIT_DECISION_REQUIRED`. The UI translates them into an actionable explanation and preserves safe draft input.
 
 ## 11. Permissions, privacy and failure handling
@@ -312,7 +332,7 @@ Proposed capabilities extend the existing vocabulary: `loan:read`, `loan:submit`
 
 Employee access includes their approved terms, financial transactions, schedule changes, reasons appropriate for disclosure and outstanding balance. Internal management notes remain explicitly classified. Protect record detail, files, exports and mutation endpoints as well as navigation; possession of a UUID is not authority. Store private files through existing authorized file storage and download mechanisms. Logs/events contain correlation IDs, not bank details, medical reasons, tokens or full documents.
 
-Reject a missing policy or unavailable balance with a visible error; do not substitute an empty loan list or zero deduction. For an enabled module, payroll finalization must prove the employee's loan state is known, including “no loans”. With recommended architecture A, the HTTP service process is not required for the in-transaction port, but its database/contracts must be available and valid.
+Reject a missing policy or unavailable balance with a visible error; do not substitute an empty loan list or zero deduction. For an enabled module, payroll finalization must prove the employee's loan state is known, including “no loans”. Under approved architecture A, Payroll/FNF calls Loans in the same process; its database and module contracts must be available and valid. A failure loading loan state cannot be interpreted as module-disabled or zero exposure.
 
 Notifications and reporting can retry after the financial commit. Private events include source IDs and version metadata, and are consumed with per-consumer deduplication; they are **not** inserted into the current wildcard webhook distribution path. Adding a private worker handler and its operational retry/dead-letter view is implementation work, not an existing verified capability. Notification failure never repeats the deduction.
 
@@ -331,6 +351,8 @@ Proposed ownership: Loans supplies purpose classification, dated principal histo
 ## 13. UI design brief for the next review stage
 
 Use the existing app shell, authorized navigation model, page information pattern, forms, table and overlay primitives. Proposed module has three destinations: **My Loans**, **Loan Administration**, **Policies**. Administration uses a permission-filtered task selector for Requests, Active Loans, Disbursements, Recoveries and Reconciliation. Details have shareable URLs; an employee sees only their permitted destinations.
+
+Add a **Loans** sidebar section beside **Pay & Benefits**, using the existing section-and-destination menu pattern. Its employee menu exposes My Loans; authorized management views also expose Loan Administration and Policies. Keep disbursement, repayment and monthly overrides as tasks within Administration rather than adding a separate sidebar item for every action. Payroll and Hiring & Exit retain their existing menu ownership; their pages link to the relevant loan/financial review when permitted. Sharing a backend service does not merge the user's Loan and Payroll workspaces.
 
 | Screen / state to design in `ui-review.pen` | Decision/task it supports |
 | --- | --- |
@@ -378,15 +400,19 @@ Implementation validation must cover decimal rounding and residue, leap-year/day
 
 Database tests must exercise concurrent external repayment versus payroll/FNF, a new loan created after a no-loan preview, duplicate commands with different keys, partial failure rollback, lock ordering/timeouts, stale exit decisions, foreign-tenant IDs and private-event redelivery. Compare persisted ledger and source records after execution; a successful HTTP response alone is insufficient.
 
+Exercise the Finance/Employee approval handshake with a crash before HR commit, a lost commit response and a redelivered confirmation. A financial guard must remain pending when HR status is unknown, release on authoritative cancellation, and never create a loan repayment during resignation approval.
+
 Authorization tests cover self/other employee access, self-approval prevention, management scope, file/export access, entitlement changes and exited employees. UI/browser review covers every designed state, responsive density, dark/large text modes, keyboard focus, draft retention, direct links and historical payslip/PDF consistency.
 
 This stage runs no application tests, lint, typecheck, build, migrations or live-data changes. The implementation plan will provide exact `rtk` validation commands for the user, who retains validation ownership unless explicitly delegated.
 
 ## 15. Integration and rollout scope
 
-Changes after design and screen approval span service/domain/storage crates, Liquibase/entity generation, loan permission/scope/entitlement catalog, gateway registration/schema checks, payroll calculation/finalization/import paths, FNF approval/finalization, private notification/reconciliation handling, and UI routes/generated operations/guidance/templates.
+Changes after design and screen approval span Payroll-hosted Loan/FNF modules and their domain/storage boundaries, Liquibase/entity generation, loan permission/scope/entitlement catalog, gateway schema checks, payroll calculation/finalization/import paths, finance API and Employee approval coordination, private notification/reconciliation handling, and UI routes/generated operations/guidance/templates.
 
-Register the new binary in Cargo, Docker build/image packaging, local start scripts, production compose and health checks. Allocate a free service port during implementation; do not infer availability from the next numeric port. Coordinate database and service versions before gateway enablement; production must not expose an incomplete required schema.
+Extend the existing Payroll binary/schema and module-level health checks. Loans uses the current Payroll service port and deployment; no new Loans executable or subgraph is introduced. Coordinate database and Payroll/Employee contract versions before gateway enablement; production must not expose an incomplete required schema.
+
+Transfer FNF financial ownership from Employee to the Payroll-hosted FNF module in a coordinated rollout. Preserve public field names where possible, but give each financial query/mutation one authoritative owner in the stitched schema. Remove direct FNF financial writes from Employee; compatibility endpoints must delegate to Finance. Migrate creation of FNF drafts from the existing post-approval helper to the finance-confirmation flow without losing existing drafts or finalized records. Do not ship simultaneous competing FNF writers.
 
 Use additive migrations and compatible API transitions. Select migration numbers from the then-current checkout; several migrations are already in progress. Enablement requires the module, explicit company policy, assigned permissions, currency compatibility and approved payroll/tax/exit rules. Do not automatically provision loan balances from salary advances or generic FNF recovery amounts.
 
@@ -394,13 +420,13 @@ Opening loans, if required, use a separate reviewed import with as-of principal,
 
 Rollback disables new originations while preserving records and authorized servicing. Do not drop financial tables or revert to a payroll build that ignores active loans. Migration rollback and operational recovery are distinct runbook items.
 
-## 16. Decisions requested during design review
+## 16. Approved architecture and remaining policy decisions
 
-The following are not yet confirmed. The recommendations make the proposal concrete without silently deciding company policy.
+The service boundary is approved. The remaining company policy selections below are not yet confirmed; recommendations do not silently decide company policy.
 
 | Decision | Recommendation for review |
 | --- | --- |
-| Storage isolation | Approach A: separate service with shared tenant storage and loan-owned atomic integration. Choose B if a separate database is required. |
+| Service boundary — approved | Approach A: separate Loans, Payroll and FNF financial modules in the existing Payroll service. Loans owns its repository; Payroll/FNF uses module interfaces. Employee retains resignation/clearance and uses the finance API. |
 | Employer boundary | Use the current tenant boundary; explicitly confirm whether any tenant has several lending employers. |
 | Interest details | ACT/365 Fixed simple reducing balance, proportional fixed charge on partial funding, interest-first allocation and explicit skip accrual treatment. Confirm supported conventions before building the calculator. |
 | Monthly amount meaning | Normal amount is total recovery including interest; show principal/interest split. |
@@ -431,7 +457,7 @@ Paths are relative to the workspace root. Findings were checked against current 
 | `hrms-svc/crates/kabipay-common/src/middleware.rs`, `hrms-svc/crates/kabipay-common/src/workflow_approval.rs`, `hrms-svc/crates/kabipay-common/src/lib.rs` | Existing module enforcement and canonical permission/workflow infrastructure. |
 | `hrms-svc/crates/kabipay-outbox-worker/src/main.rs:1`; `hrms-svc/crates/kabipay-db-entities/src/tenant/d0030_outbox_events.rs` | Webhook-oriented outbox delivery and event records. |
 | `hrms-svc/crates/kabipay-db-entities/src/tenant/d0007_employee_core.rs:3` | Tenant-owned employee identity. |
-| `hrms-ui/docs/superpowers/plans/2026-10-06-approved-ui-review.md` | Current compact layout rules and validation ownership. |
+| `hrms-ui/docs/superpowers/specs/2026-08-20-all-module-ui-ux-modernization-design.md` | Existing UI foundation principles. The earlier 6 October compact-review plan was available during the initial audit but is absent from the current checkout; effective appearance tokens and Pencil boards must be checked for the screen stage. |
 | `hrms-ui/src/styles/appearance.css`, `hrms-ui/src/styles/semantic-tokens.css`; `hrms-ui/src/navigation/navigationModel.ts` | Effective visual tokens, density/fonts and task-oriented navigation. |
 | `hrms-ui/src/modules/workplace/components/SeparationRequestsCard.tsx`; `hrms-ui/src/modules/workplace/OnboardingPage.tsx` | Existing resignation/FNF UI integration surfaces. |
 | `hrms-ui/.eslintrc.cjs` | Existing 400-line file, 120-line function and complexity constraints; use cohesive components/services. |

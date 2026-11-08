@@ -8,11 +8,12 @@
     create/update the Caddyfile, load uploaded image archives, and run
     docker compose on the VPS.
 
-    With -SyncEnvExample, the script uploads .env.example and reconciles
-    /opt/apps/.env from it after creating a timestamped backup.
-    Database credentials are owned by deploy/.env.example and the remote
-    /opt/apps/.env file. This script validates propagation but does not
-    define those credential values.
+    With -SyncEnvExample, the script uploads deploy/.env as restricted staging
+    input (.env.example on the VPS) and reconciles
+    /opt/apps/.env by adding missing defaults and preserving existing values.
+    A restricted timestamped backup is retained. The private Finance secret
+    is generated on the VPS only when missing; existing secrets are never
+    rotated by reconciliation. Finance configuration is checked before restart.
 
 .EXAMPLE
     .\scripts\deploy-on-vps.ps1 -Tag helior-001 -VpsHost 159.198.70.19 -VpsUser deploy -PublicBaseUrl https://heliorsoft.com -ApiBaseUrl https://api.heliorsoft.com -TenantId e6d4fc13-feb8-52a0-93bd-f66c795969b1 -SyncCompose -SyncEnvExample -SyncCaddyfile -LoadImages -Up
@@ -81,7 +82,7 @@ $ErrorActionPreference = 'Stop'
 
 $ProjectDocumentationDir = Split-Path -Parent $PSScriptRoot
 $ComposeTemplate = Join-Path $ProjectDocumentationDir 'deploy/docker-compose.prod.yml'
-$EnvExample = Join-Path $ProjectDocumentationDir 'deploy/.env.example'
+$EnvFile = Join-Path $ProjectDocumentationDir 'deploy/.env'
 $CaddyfileTemplate = Join-Path $ProjectDocumentationDir 'deploy/Caddyfile.example'
 
 $PublicBaseUrl = $PublicBaseUrl.TrimEnd('/')
@@ -233,8 +234,8 @@ if (-not (Test-Path $ComposeTemplate)) {
     throw "Missing compose template: $ComposeTemplate"
 }
 
-if (-not (Test-Path $EnvExample)) {
-    throw "Missing env example: $EnvExample"
+if (-not (Test-Path -LiteralPath $EnvFile -PathType Leaf)) {
+    throw "Missing local environment file: $EnvFile"
 }
 
 if ($Deploy) {
@@ -262,10 +263,12 @@ $AppDirQ = Quote-Sh $AppDir
 $ConfigDirQ = Quote-Sh "$AppDir/config"
 $ImageDirQ = Quote-Sh $ImageDir
 $PrivateFileDirQ = Quote-Sh "$AppDir/data/private-files"
+$VideoGuideDirQ = Quote-Sh "$AppDir/media/video-guides"
 $TagQ = Quote-Sh $Tag
 $PublicBaseUrlQ = Quote-Sh $PublicBaseUrl
 $ApiBaseUrlQ = Quote-Sh $ApiBaseUrl
 $TenantIdQ = Quote-Sh $TenantId.ToLowerInvariant()
+$RemoteEnvExamplePathQ = Quote-Sh $RemoteEnvExamplePath
 $RemoteEnvReconcileScriptPathQ = Quote-Sh $RemoteEnvReconcileScriptPath
 $RemoteTenantTargetScriptPathQ = Quote-Sh $RemoteTenantTargetScriptPath
 $RemoteValidationScriptPathQ = Quote-Sh $RemoteValidationScriptPath
@@ -314,129 +317,7 @@ $CaddySiteAddress {
     }
 
     $EnvReconcileScriptPath = [System.IO.Path]::Combine([System.IO.Path]::GetTempPath(), "kabipay-reconcile-env-$Tag.sh")
-    $EnvReconcileScriptContent = @'
-#!/usr/bin/env bash
-set -euo pipefail
-
-APP_DIR="$1"
-TAG="$2"
-
-cd "$APP_DIR"
-
-fail() {
-    echo "ERROR: $*" >&2
-    exit 1
-}
-
-get_env_value() {
-    local file="$1"
-    local key="$2"
-    awk -F= -v key="$key" '$1 == key { value = substr($0, length(key) + 2) } END { print value }' "$file"
-}
-
-set_env_value() {
-    local file="$1"
-    local key="$2"
-    local value="$3"
-    local tmp
-
-    tmp="$(mktemp)"
-    awk -v key="$key" -v value="$value" '
-        BEGIN { done = 0 }
-        $0 ~ "^" key "=" {
-            print key "=" value
-            done = 1
-            next
-        }
-        { print }
-        END {
-            if (!done) {
-                print key "=" value
-            }
-        }
-    ' "$file" > "$tmp"
-    cat "$tmp" > "$file"
-    rm -f "$tmp"
-}
-
-remove_env_key() {
-    local file="$1"
-    local key="$2"
-    local tmp
-
-    tmp="$(mktemp)"
-    awk -v key="$key" '$0 !~ "^" key "=" { print }' "$file" > "$tmp"
-    cat "$tmp" > "$file"
-    rm -f "$tmp"
-}
-
-test -f .env.example || fail "$APP_DIR/.env.example does not exist"
-
-if [ ! -f .env ]; then
-    cp .env.example .env
-    echo "Created .env from .env.example."
-else
-    cp .env ".env.backup.$(date +%Y%m%d-%H%M%S)"
-    while IFS= read -r line || [ -n "$line" ]; do
-        case "$line" in
-            ''|\#*) continue ;;
-            *=*)
-                key="${line%%=*}"
-                value="${line#*=}"
-                set_env_value .env "$key" "$value"
-                ;;
-        esac
-    done < .env.example
-fi
-
-set_env_value .env KABIPAY_IMAGE_TAG "$TAG"
-
-if [ -z "$(get_env_value .env POSTGRES_HOST)" ]; then
-    fail "POSTGRES_HOST is missing in $APP_DIR/.env"
-fi
-if [ -z "$(get_env_value .env POSTGRES_PORT)" ]; then
-    fail "POSTGRES_PORT is missing in $APP_DIR/.env"
-fi
-if [ -z "$(get_env_value .env POSTGRES_DB)" ]; then
-    fail "POSTGRES_DB is missing in $APP_DIR/.env"
-fi
-if [ -z "$(get_env_value .env POSTGRES_USER)" ]; then
-    fail "POSTGRES_USER is missing in $APP_DIR/.env"
-fi
-if [ -z "$(get_env_value .env POSTGRES_PASSWORD)" ]; then
-    fail "POSTGRES_PASSWORD is missing in $APP_DIR/.env"
-fi
-
-jwt_secret="$(get_env_value .env KABIPAY_JWT_SECRET)"
-if [ -z "$jwt_secret" ]; then
-    jwt_secret="$(get_env_value .env KABIPAY_CLIENT_JWT_SECRET)"
-fi
-if [ -z "$jwt_secret" ]; then
-    jwt_secret="$(get_env_value .env KABIPAY_OPERATOR_JWT_SECRET)"
-fi
-if [ -z "$jwt_secret" ]; then
-    fail "KABIPAY_JWT_SECRET is missing in $APP_DIR/.env"
-fi
-set_env_value .env KABIPAY_JWT_SECRET "$jwt_secret"
-
-remove_env_key .env KABIPAY_CLIENT_JWT_SECRET
-remove_env_key .env KABIPAY_OPERATOR_JWT_SECRET
-remove_env_key .env KABIPAY_CLIENT_JWT_EXPIRY_HOURS
-remove_env_key .env KABIPAY_OPERATOR_JWT_EXPIRY_HOURS
-remove_env_key .env KABIPAY_CLIENT_REFRESH_EXPIRY_DAYS
-remove_env_key .env DATABASE_URL
-remove_env_key .env POSTGRES_SSLMODE
-
-echo "==> Effective deployment environment"
-printf 'KABIPAY_IMAGE_TAG=%s\n' "$(get_env_value .env KABIPAY_IMAGE_TAG)"
-printf 'POSTGRES_HOST=%s\n' "$(get_env_value .env POSTGRES_HOST)"
-printf 'POSTGRES_PORT=%s\n' "$(get_env_value .env POSTGRES_PORT)"
-printf 'POSTGRES_DB=%s\n' "$(get_env_value .env POSTGRES_DB)"
-printf 'POSTGRES_USER=%s\n' "$(get_env_value .env POSTGRES_USER)"
-printf 'POSTGRES_PASSWORD=%s\n' '[set]'
-printf 'KABIPAY_JWT_SECRET=%s\n' '[set]'
-printf 'DATABASE_URL=%s\n' '[removed]'
-'@
+    $EnvReconcileScriptContent = Get-Content -LiteralPath (Join-Path $PSScriptRoot 'deploy/reconcile-env.sh') -Raw
     Write-Utf8NoBomFile -Path $EnvReconcileScriptPath -Content $EnvReconcileScriptContent
     $TempFiles += $EnvReconcileScriptPath
 
@@ -645,6 +526,9 @@ done
 
 docker compose ps
 
+echo "==> Validating private Finance environment propagation"
+bash "$APP_DIR/config/kabipay-reconcile-env.sh" "$APP_DIR" "$TAG" --check-container
+
 echo "==> Validating tenant database target"
 tenant_database_target="$(
     docker exec postgres psql -U "$expected_postgres_user" -d "$expected_postgres_db" -tAc "SELECT db_host || '|' || db_name || '|' || schema_name FROM kabipay_ops.tenant_database WHERE tenant_id = '$TENANT_ID' AND is_active = true LIMIT 1;" 2>/dev/null || true
@@ -681,7 +565,7 @@ echo "==> Deployment validation passed"
     Write-Utf8NoBomFile -Path $ValidationScriptPath -Content $ValidationScriptContent
     $TempFiles += $ValidationScriptPath
 
-    Invoke-Remote "Creating remote app directories on $Remote" "set -eu; mkdir -p $AppDirQ $ConfigDirQ $ImageDirQ $PrivateFileDirQ; chmod 0700 $PrivateFileDirQ"
+    Invoke-Remote "Creating remote app directories on $Remote" "set -eu; mkdir -p $AppDirQ $ConfigDirQ $ImageDirQ $PrivateFileDirQ $VideoGuideDirQ; chmod 0700 $PrivateFileDirQ; chmod 0755 $VideoGuideDirQ"
 
     Copy-ToRemote "Uploading runtime UI config" $UiConfigPath $RemoteUiConfigPath
 
@@ -697,10 +581,16 @@ echo "==> Deployment validation passed"
         Write-Host "==> Skipping compose sync. Use -SyncCompose for first deployment or compose changes." -ForegroundColor Yellow
     }
 
+    Copy-ToRemote "Uploading environment preparation script" $EnvReconcileScriptPath $RemoteEnvReconcileScriptPath
+
     if ($SyncEnvExample) {
-        Copy-ToRemote "Uploading .env.example" $EnvExample $RemoteEnvExamplePath
-        Copy-ToRemote "Uploading environment reconciliation script" $EnvReconcileScriptPath $RemoteEnvReconcileScriptPath
-        Invoke-Remote "Reconciling remote .env from .env.example" "set -eu; bash $RemoteEnvReconcileScriptPathQ $AppDirQ $TagQ"
+        Invoke-Remote "Restricting environment upload permissions" "set -eu; umask 077; touch $RemoteEnvExamplePathQ; chmod 0600 $RemoteEnvExamplePathQ"
+        Copy-ToRemote "Uploading local deploy/.env as reconciliation input" $EnvFile $RemoteEnvExamplePath
+        Invoke-Remote "Reconciling remote .env from uploaded defaults" "set -eu; chmod 0600 $RemoteEnvExamplePathQ; bash $RemoteEnvReconcileScriptPathQ $AppDirQ $TagQ"
+    }
+
+    if ($Up) {
+        Invoke-Remote "Validating private Finance configuration before restart" "set -eu; bash $RemoteEnvReconcileScriptPathQ $AppDirQ $TagQ --check-only"
     }
 
     if ($LoadImages) {
