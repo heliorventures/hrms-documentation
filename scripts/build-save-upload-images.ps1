@@ -13,6 +13,8 @@
     layout is required. Organization event workers are built from the service
     checkout's integrations/organization-events folder; use -EventsDir to override.
     Shared platform, Caddy and database configuration use separate operator steps.
+    Use -InteractiveSsh from a terminal to allow native SSH/SCP password or key
+    passphrase prompts. The default is noninteractive for automation.
 
 .EXAMPLE
     .\scripts\build-save-upload-images.ps1 -Tag helior-001 -VpsHost 159.198.70.19 -VpsUser deploy
@@ -40,6 +42,8 @@ param(
     [int]$SshPort = 22,
 
     [string]$SshIdentityFile,
+
+    [switch]$InteractiveSsh,
 
     [string]$RemoteDir = '/opt/apps/hrms/images',
 
@@ -233,7 +237,7 @@ if ($DeployAfterUpload) {
 
 if (-not $SkipUpload) {
     if ($SshIdentityFile -and -not (Test-Path -LiteralPath $SshIdentityFile -PathType Leaf)) { throw 'SSH identity file does not exist.' }
-    Initialize-Remote $VpsHost $VpsUser $SshPort $SshIdentityFile
+    Initialize-Remote $VpsHost $VpsUser $SshPort $SshIdentityFile -InteractiveSsh:$InteractiveSsh
 }
 
 if (-not $SkipBuild) {
@@ -381,6 +385,7 @@ if ($DeployAfterUpload) {
         VpsHost = $VpsHost
         VpsUser = $VpsUser
         SshPort = $SshPort
+        InteractiveSsh = $InteractiveSsh
         PublicBaseUrl = $PublicBaseUrl
         AppDir = $AppDir
         ImageDir = $RemoteDir
@@ -402,4 +407,5 @@ Write-Host ""
 Write-Host "Done. Image archives uploaded successfully." -ForegroundColor Green
 Write-Host ""
 Write-Host "Next deployment command:" -ForegroundColor Yellow
-Write-Host "  .\scripts\deploy-on-vps.ps1 -Tag $Tag -VpsHost $VpsHost -VpsUser $VpsUser -Manifest <reviewed-manifest.json> -OutputDir <reviewed-render-directory> -AppDir $AppDir -ImageDir $RemoteDir -Deploy -InventoryReport <fresh-inventory.txt>"
+$interactiveOption=if($InteractiveSsh){' -InteractiveSsh'}else{''}
+Write-Host "  .\scripts\deploy-on-vps.ps1 -Tag $Tag -VpsHost $VpsHost -VpsUser $VpsUser -Manifest <reviewed-manifest.json> -OutputDir <reviewed-render-directory> -AppDir $AppDir -ImageDir $RemoteDir -Deploy -InventoryReport <fresh-inventory.txt>$interactiveOption"

@@ -34,6 +34,8 @@ For an already built release, set `$Archives` to its existing archive directory 
 
 Exactly four matching archives plus the original `SHA256SUMS` are required. Upload rechecks hashes on the VPS. Credentials are not uploaded by this command.
 
+For a password or encrypted-key login, add `-InteractiveSsh` to the upload and remote deployment commands and run them from an interactive PowerShell terminal. Native SSH/SCP prompts locally; passwords are never collected or saved by the scripts. Prompts may repeat because each SSH/SCP invocation opens a separate connection. Use `-SshIdentityFile <path>` when your login needs a specific key. Without `-InteractiveSsh`, authentication remains noninteractive for automation. The switch is forwarded automatically by `-DeployAfterUpload`; host-key verification remains unchanged.
+
 ## 3. Render and load without starting
 
 ```powershell

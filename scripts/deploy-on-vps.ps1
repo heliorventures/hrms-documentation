@@ -5,11 +5,13 @@ Render and release HRMS applications independently of the shared VPS platform.
 Use -Manifest for shared-service organization deployments. Platform setup,
 PostgreSQL provisioning, ClickHouse migration, Kafka and root Caddy have separate
 operator steps. Use -RenderOnly for local review artifacts without SSH/SCP.
+Use -InteractiveSsh in a terminal to allow native password/passphrase prompts.
 #>
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$true)][ValidatePattern('^[a-zA-Z0-9_.-]+$')][string]$Tag,
     [string]$VpsHost,[string]$VpsUser='deploy',[int]$SshPort=22,[string]$SshIdentityFile,
+    [switch]$InteractiveSsh,
     [string]$AppDir='/opt/apps/hrms',[string]$ImageDir='/opt/apps/hrms/images',
     [string]$Manifest,[string]$OutputDir,[switch]$RenderOnly,[string]$InventoryReport,
     [string]$PublicBaseUrl,[string]$ApiBaseUrl,[string]$CaddySiteAddress,
@@ -44,7 +46,7 @@ if ($Up) {
     $inventory=Get-Item -LiteralPath $InventoryReport
     if ($inventory.PSIsContainer -or ($inventory.Attributes -band [System.IO.FileAttributes]::ReparsePoint)) { throw 'Inventory report must be a regular file.' }
 }
-Initialize-Remote $VpsHost $VpsUser $SshPort $SshIdentityFile
+Initialize-Remote $VpsHost $VpsUser $SshPort $SshIdentityFile -InteractiveSsh:$InteractiveSsh
 Invoke-Remote "set -eu; umask 077; mkdir -p '$AppDir/config' '$AppDir/caddy' '$AppDir/images' '$AppDir/scripts'"
 if ($SyncCompose) {
     $release=Get-Content -LiteralPath (Join-Path $OutputDir 'release.json') -Raw | ConvertFrom-Json

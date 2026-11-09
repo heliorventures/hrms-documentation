@@ -32,6 +32,26 @@ test('generated history TLS references preserve established company provisioning
   const auth=JSON.parse(files['config/companies/auth.json']);
   assert.deepEqual(auth.companies.map(c=>c.settings.KABIPAY_CLIENT_JWT_KEY_ID),fixture.companies.map(c=>c.clientJwtKeyId));
 });
+
+test('existing shared file root mounts only separate tenant directories without relocation',()=>{
+  const config=structuredClone(fixture);
+  for(const company of config.companies)company.privateFilesPath='/opt/apps/data/private-files';
+  const files=render(config),{services}=JSON.parse(files['compose.json']);
+  const paths=config.companies.map(c=>`/opt/apps/data/private-files/tenants/${c.id}`);
+  assert.deepEqual(files['private-files.txt'].trim().split('\n'),paths);
+  for(const name of ['employee','notification','maintenance']) {
+    const mounts=services[`shared-${name}`].volumes.filter(v=>v.target.startsWith('/var/lib/kabipay/private-files'));
+    assert.deepEqual(mounts.map(v=>v.source),paths);
+    assert(mounts.every(v=>v.target.endsWith(v.source.slice('/opt/apps/data/private-files'.length)) && !v.bind.create_host_path));
+  }
+  assert(!Object.values(services).some(s=>s.volumes?.some(v=>v.source==='/opt/apps/data/private-files')));
+  const overlapping=structuredClone(config);
+  overlapping.companies[1].privateFilesPath=paths[0];
+  assert.throws(()=>validate(overlapping),/overlap/);
+  const normalized=structuredClone(config);
+  normalized.companies[1].privateFilesPath='/opt/apps/data//private-files/./';
+  assert.doesNotThrow(()=>validate(normalized));
+});
 test('five separate companies still deploy exactly 18 business application processes',()=>{
   const config=structuredClone(fixture);
   config.companies=Array.from({length:5},(_,i)=>({id:`00000000-0000-4000-8000-00000000000${i+1}`,slug:`company-${i+1}`,clientJwtKeyId:`company-${i+1}-client-v1`,publicHost:`company-${i+1}.${config.tenantBaseDomain}`,privateFilesPath:`${config.appDir}/data/company-${i+1}/private-files`}));
@@ -105,7 +125,7 @@ test('global operator routes contain no retired company upstreams and require an
   for(const plane of [undefined,'legacy','tenant',''])assert.throws(()=>publicRoutes({plane,auth:'auth:1',gateway:'g:2',ui:'ui:80'}),/plane/);
 });
 test('reject duplicate/ambiguous/untrusted deployment selectors before rendering',()=>{
-  for(const edit of [c=>c.tag='x\nRUN',c=>c.appDir='/opt/apps',c=>c.appDir='/opt/apps/../etc',c=>c.companies[1].id=c.companies[0].id,c=>c.companies[1].publicHost=c.companies[0].publicHost,c=>c.companies[0].publicHost='evil.invalid',c=>c.companies[0].slug='a\nreverse_proxy evil',c=>delete c.companies[0].privateFilesPath,c=>c.companies[1].privateFilesPath=c.companies[0].privateFilesPath,c=>c.companies[1].privateFilesPath=c.companies[0].privateFilesPath+'/child',c=>c.companies[1].privateFilesPath=c.companies[0].privateFilesPath.replace('/data/','//data/./'),c=>c.companies[0].privateFilesPath='/opt/apps/hrms/secrets']) {
+  for(const edit of [c=>c.tag='x\nRUN',c=>c.appDir='/opt/apps',c=>c.appDir='/opt/apps/../etc',c=>c.companies[1].id=c.companies[0].id,c=>c.companies[1].publicHost=c.companies[0].publicHost,c=>c.companies[0].publicHost='evil.invalid',c=>c.companies[0].slug='a\nreverse_proxy evil',c=>delete c.companies[0].privateFilesPath,c=>c.companies[1].privateFilesPath=c.companies[0].privateFilesPath+'/tenants/'+c.companies[0].id,c=>c.companies[1].privateFilesPath=c.companies[0].privateFilesPath.replace('/data/','//data/./')+'/tenants/'+c.companies[0].id,c=>c.companies[0].privateFilesPath='/opt/apps/hrms/secrets']) {
     const c=structuredClone(fixture);edit(c);assert.throws(()=>validate(c));
   }
 });

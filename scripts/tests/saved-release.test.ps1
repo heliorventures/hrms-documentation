@@ -37,11 +37,20 @@ try {
  Assert-Test ($calls.Contains('sha256sum --check')) 'Remote archives not verified'
  Assert-Test ($calls.Contains('cutover-inventory.txt')) 'Inventory not forwarded to deployment'
  Assert-Test (Test-Path (Join-Path $render 'release.json')) 'Reviewed output directory not forwarded'
+ foreach($call in @($global:SavedReleaseCalls|Where-Object{$_.kind -in @('ssh','scp')})) {
+  Assert-Test ($call.arguments -contains 'BatchMode=yes') 'Default upload/deploy transport must stay noninteractive'
+  if($call.kind -eq 'ssh'){Assert-Test (-not $call.arguments[-1].Contains("`r")) 'CRLF remote command reached SSH'}
+ }
  $parameters.Remove('InventoryReport');$parameters.InventoryService='synthetic_readonly';$parameters.InventoryDatabase='helior'
+ $parameters.InteractiveSsh=$true
  $global:SavedReleaseCalls.Clear()
  & $entry @parameters
  $issued=@($global:SavedReleaseCalls|Where-Object{$_.kind -eq 'inventory'})
  Assert-Test ($issued.Count -eq 1) 'Fresh receipt not issued after upload'
+ foreach($call in @($global:SavedReleaseCalls|Where-Object{$_.kind -in @('ssh','scp')})) {
+  Assert-Test ($call.arguments -contains 'BatchMode=no') 'Interactive SSH not forwarded through upload and deployment'
+  if($call.kind -eq 'ssh'){Assert-Test (-not $call.arguments[-1].Contains("`r")) 'CRLF interactive remote command reached SSH'}
+ }
  $sequence=@($global:SavedReleaseCalls)
  $issueIndex=[Array]::IndexOf($sequence,$issued[0])
  Assert-Test ($issueIndex -gt 0 -and (($sequence[0..($issueIndex-1)]|ConvertTo-Json -Depth 8).Contains('sha256sum --check'))) 'Receipt issued before upload verification'

@@ -39,9 +39,13 @@ export function validate(config) {
     host(c.publicHost); required(!hosts.has(c.publicHost),'Duplicate public host'); hosts.add(c.publicHost);
     required(c.publicHost===`${c.slug}.${host(config.tenantBaseDomain)}`, 'Company hostname must match tenant slug and base domain');
     c.privateFilesPath=safePath(c.privateFilesPath);
-    required(c.privateFilesPath.startsWith(`${appDir}/data/`) || c.privateFilesPath.startsWith(`${platformDir}/data/private-files/`),'Company files must use an explicit company data directory');
-    required(!storage.some(p=>p===c.privateFilesPath || p.startsWith(`${c.privateFilesPath}/`) || c.privateFilesPath.startsWith(`${p}/`)),'Company private file paths must not overlap');
-    storage.push(c.privateFilesPath);
+    const sharedFilesRoot=`${platformDir}/data/private-files`;
+    required(c.privateFilesPath.startsWith(`${appDir}/data/`) || c.privateFilesPath===sharedFilesRoot || c.privateFilesPath.startsWith(`${sharedFilesRoot}/`),'Company files must use an explicit company data directory');
+    // Only UUID subdirectories are mounted. A common parent is safe; validate
+    // actual mount sources so existing files need not move during deployment.
+    const tenantFiles=`${c.privateFilesPath}/tenants/${c.id}`;
+    required(!storage.some(p=>p===tenantFiles || p.startsWith(`${tenantFiles}/`) || tenantFiles.startsWith(`${p}/`)),'Company private file paths must not overlap');
+    storage.push(tenantFiles);
   }
   return {...config,appDir,platformDir,appNetwork:network,apiHost:config.apiHost??config.publicHost};
 }
