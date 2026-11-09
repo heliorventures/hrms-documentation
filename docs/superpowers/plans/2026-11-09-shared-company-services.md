@@ -1,5 +1,7 @@
 # Shared company services implementation plan
 
+> Follow-up: the approved [registry company database revision](2026-11-09-registry-company-databases.md) replaces per-company runtime passwords with stable service logins and generated version-2 catalogues. The original implementation/evidence below records the preceding step; use the current environment contract for deployment.
+
 **Goal:** One shared instance of each HRMS application service, with an independently credentialed PostgreSQL database per company. Process replicas scale with workload, not company count.
 
 **Approved direction:** The user selected separate company databases and shared services, and authorized completing this change on 2026-11-09. Existing Kafka and ClickHouse installations remain shared. Production data movement is a separate rollout step.

@@ -1,5 +1,6 @@
 // Shared application topology. Company-specific TLS endpoints remain logical
 // names on one source proxy; they do not create application process replicas.
+import {companyCatalog} from './company-catalog.mjs';
 const mount=(source,target,read_only=true)=>({type:'bind',source,target,read_only,bind:{create_host_path:false}});
 const privateServices=new Set(['employee','leave','attendance','expense','notification','survey','analytics','maintenance']);
 export function shareCompanyServices(c, files, services, networks, tenantServices, commandServices, publicRoutes) {
@@ -9,6 +10,7 @@ export function shareCompanyServices(c, files, services, networks, tenantService
   networks[sharedNetwork]={internal:true}; networks[egress]={internal:false};
   const sharedConfig='/run/company-config/companies.json';
   for(const name of names){
+    files[`config/companies/${name}.json`]=JSON.stringify(companyCatalog(c.companies,name),null,2)+'\n';
     const service={image:`kabipay-svc:${c.tag}`,command:[`kabipay-${name==='maintenance'?'tenant-maintenance':name}`],
       restart:'unless-stopped',init:true,read_only:true,tmpfs:['/tmp'],
       logging:{driver:'json-file',options:{'max-size':'10m','max-file':'3'}}};
@@ -16,13 +18,14 @@ export function shareCompanyServices(c, files, services, networks, tenantService
     service.networks=[sharedNetwork,'sources','metadata',egress];
     if(['survey','analytics'].includes(name))service.networks.push('private-history');
     service.environment={KABIPAY_COMPANY_CONFIG_FILE:sharedConfig,KABIPAY_CLIENT_JWT_MODE:'rs256',
+      KABIPAY_COMPANY_DATABASE_FILE:'/run/service-secrets/database.json',
       KABIPAY_REQUIRE_AUTH:'1',KABIPAY_ORGANIZATION_HTTP_CA_FILE:'/run/tls/organization-ca.pem',
       KABIPAY_DB_POOL_MAX:String(c.databasePools.opsPerService),
       KABIPAY_TENANT_DB_POOL_MAX:String(c.databasePools.perCompany),
       KABIPAY_TENANT_DB_CONNECTION_BUDGET:String(c.companies.length*c.databasePools.perCompany)};
     service.volumes=[mount(`${root}/config/public-keys`,'/run/public-keys'),
       mount(`${root}/config/tls/organization-ca.pem`,'/run/tls/organization-ca.pem'),
-      mount(`${root}/secrets/shared/${name}/companies.json`,sharedConfig),
+      mount(`${root}/config/companies/${name}.json`,sharedConfig),
       mount(`${root}/secrets/shared/${name}/service`,'/run/service-secrets')];
     if(name==='auth')service.environment.KABIPAY_AUTH_PLANE='client';
     else if(name!=='maintenance')Object.assign(service.environment,{
@@ -89,5 +92,5 @@ export function shareCompanyServices(c, files, services, networks, tenantService
   services['shared-source']={...proxy,networks:{[sharedNetwork]:{},organization:{aliases:c.companies.map(company=>`source-${company.slug}`)}},volumes:sourceVolumes};
   files['finance-checks.txt']=`${root}/env/shared/runtime.env|shared-employee shared-payroll\n`;
   files['private-files.txt']=c.companies.map(company=>`${company.privateFilesPath}/tenants/${company.id}`).join('\n')+'\n';
-  files['company-configs.txt']=names.map(name=>`${root}/secrets/shared/${name}/companies.json`).join('\n')+'\n';
+  files['company-configs.txt']=names.map(name=>`${root}/config/companies/${name}.json`).join('\n')+'\n';
 }

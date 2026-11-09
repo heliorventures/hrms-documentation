@@ -10,7 +10,7 @@ export async function checkSharedConfig(root){
   const {services}=await json(path.join(root,'compose.json'));
   requireValue(release.applicationLayout==='shared');
   const expected=new Map(release.companyBindings.map(c=>[c.id,c]));
-  const locations=new Map();
+  const locations=new Map(),serviceUsers=new Set();let registryServer,catalogVersion;
   for(const [name,service] of Object.entries(services)){
     if(!service.environment?.KABIPAY_COMPANY_CONFIG_FILE)continue;
     const resolve=target=>{
@@ -22,11 +22,29 @@ export async function checkSharedConfig(root){
       return path.join(mount.source,relative);
     };
     const config=await json(resolve(service.environment.KABIPAY_COMPANY_CONFIG_FILE));
-    requireValue(config.version===1&&Array.isArray(config.companies)&&config.companies.length===expected.size);
+    requireValue([1,2].includes(config.version)&&Array.isArray(config.companies)&&config.companies.length===expected.size);
+    requireValue(!catalogVersion||catalogVersion===config.version);catalogVersion=config.version;
+    if(config.version===2){
+      const database=await json(resolve(service.environment.KABIPAY_COMPANY_DATABASE_FILE??''));
+      requireValue(database.version===1&&typeof database.server_url==='string');
+      requireValue(typeof database.database_prefix==='string'&&/^[a-z_][a-z0-9_]{0,30}_$/.test(database.database_prefix)&&!database.database_prefix.startsWith('pg_'));
+      const url=new URL(database.server_url);
+      const allowed=new Set(['sslmode','sslrootcert','ssl-root-cert','ssl-ca','sslcert','ssl-cert','sslkey','ssl-key','statement-cache-capacity','application_name']);
+      requireValue(['postgres:','postgresql:'].includes(url.protocol)&&url.hostname&&url.username&&decodeURIComponent(url.username)!=='postgres'&&url.password&&url.pathname.length>1&&!url.hash);
+      requireValue(url.searchParams.getAll('sslmode').length===1&&url.searchParams.get('sslmode')==='verify-full'&&[...url.searchParams.keys()].every(k=>allowed.has(k)));
+      const server=JSON.stringify([url.hostname,url.port||'5432',database.database_prefix]);
+      requireValue(!registryServer||registryServer===server);registryServer=server;
+      const user=JSON.stringify([url.hostname,url.port||'5432',decodeURIComponent(url.username)]);
+      requireValue(!serviceUsers.has(user));serviceUsers.add(user);
+    }else requireValue(!service.environment.KABIPAY_COMPANY_DATABASE_FILE);
     const seen=new Set(),users=new Set(),databases=new Set();
     for(const company of config.companies){
       requireValue(expected.has(company.tenant_id)&&!seen.has(company.tenant_id));seen.add(company.tenant_id);
       requireValue(company.public_origin===`https://${expected.get(company.tenant_id).publicHost}`);
+      if(config.version===2){
+        requireValue(!Object.hasOwn(company,'database_url')&&!Object.hasOwn(company,'schema'));
+        locations.set(company.tenant_id,'registry');
+      }else{
       const db=new URL(company.database_url),location=`${db.hostname}:${db.port||5432}${db.pathname}`;
       requireValue(['postgres:','postgresql:'].includes(db.protocol)&&db.username&&db.password&&db.pathname.length>1);
       requireValue(db.searchParams.getAll('sslmode').length===1&&db.searchParams.get('sslmode')==='verify-full'&&!db.searchParams.has('ssl-mode')&&/^[a-zA-Z_][a-zA-Z0-9_]{0,62}$/.test(company.schema));
@@ -35,6 +53,7 @@ export async function checkSharedConfig(root){
       const binding=JSON.stringify([location,company.schema]);
       requireValue(!locations.has(company.tenant_id)||locations.get(company.tenant_id)===binding);
       locations.set(company.tenant_id,binding);
+      }
       const settings=company.settings??{},required=[];
       const role=name.replace(/^shared-/,'');
       if(role==='auth')required.push('KABIPAY_CLIENT_JWT_KEY_ID','KABIPAY_CLIENT_JWT_PRIVATE_KEY_FILE');

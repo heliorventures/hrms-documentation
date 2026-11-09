@@ -51,3 +51,30 @@ test('required private files cannot be omitted or selected from another company 
   delete config.companies[0].settings.KABIPAY_CLIENT_JWT_PRIVATE_KEY_FILE;
   await writeFile(file,JSON.stringify(config));await assert.rejects(checkSharedConfig(root));
 }));
+
+test('registry catalogue uses stable service credentials and rejects insecure or mixed configuration',()=>fixture(async({root,file,config})=>{
+  const compose=JSON.parse(await readFile(path.join(root,'compose.json'),'utf8'));
+  const service=compose.services['shared-payroll'],credentials=path.join(root,'database.json');
+  service.environment.KABIPAY_COMPANY_DATABASE_FILE='/run/service-secrets/database.json';
+  service.volumes.push({type:'bind',source:credentials,target:'/run/service-secrets/database.json'});
+  config.version=2;
+  for(const company of config.companies){delete company.database_url;delete company.schema;}
+  await writeFile(file,JSON.stringify(config));await writeFile(path.join(root,'compose.json'),JSON.stringify(compose));
+  const database={version:1,server_url:'postgres://payroll_runtime:synthetic@postgres/postgres?sslmode=verify-full',database_prefix:'company_'};
+  await writeFile(credentials,JSON.stringify(database));await checkSharedConfig(root);
+  for(const change of [
+    c=>c.server_url=c.server_url.replace('verify-full','require'),
+    c=>c.server_url+='&ssl-mode=disable',
+    c=>c.server_url=c.server_url.replace('payroll_runtime','postgres'),
+    c=>c.database_prefix='',
+    c=>c.database_prefix='pg_',
+  ]){
+    const bad=structuredClone(database);change(bad);await writeFile(credentials,JSON.stringify(bad));
+    await assert.rejects(checkSharedConfig(root));
+  }
+  await writeFile(credentials,JSON.stringify(database));
+  config.companies[0].database_url='postgres://unexpected:synthetic@elsewhere/company_a';
+  await writeFile(file,JSON.stringify(config));await assert.rejects(checkSharedConfig(root));
+  delete config.companies[0].database_url;await writeFile(file,JSON.stringify(config));
+  await rm(credentials);await assert.rejects(checkSharedConfig(root));
+}));

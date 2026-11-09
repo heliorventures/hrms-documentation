@@ -1,0 +1,5 @@
+{
+  "version": 1,
+  "server_url": "postgres://employee_runtime:REPLACE_SECRET@postgres:5432/postgres?sslmode=verify-full&sslrootcert=/run/tls/organization-ca.pem",
+  "database_prefix": "company_"
+}

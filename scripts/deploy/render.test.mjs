@@ -22,9 +22,19 @@ test('onboarding generates registry catalogues without adding tenant credentials
     assert.deepEqual(newServices[`shared-${name}`].volumes.find(v=>v.target==='/run/service-secrets'),services[`shared-${name}`].volumes.find(v=>v.target==='/run/service-secrets'));
   }
 });
+
+test('generated history TLS references preserve established company provisioning filenames',()=>{
+  const files=render(fixture);
+  for(const name of ['survey','analytics'])for(const company of JSON.parse(files[`config/companies/${name}.json`]).companies){
+    assert.equal(company.settings.KABIPAY_PRIVATE_HISTORY_CLIENT_CERT_FILE,`/run/companies/${company.tenant_id}/private-events/client.crt`);
+    assert.equal(company.settings.KABIPAY_PRIVATE_HISTORY_CLIENT_KEY_FILE,`/run/companies/${company.tenant_id}/private-events/client.key`);
+  }
+  const auth=JSON.parse(files['config/companies/auth.json']);
+  assert.deepEqual(auth.companies.map(c=>c.settings.KABIPAY_CLIENT_JWT_KEY_ID),fixture.companies.map(c=>c.clientJwtKeyId));
+});
 test('five separate companies still deploy exactly 18 business application processes',()=>{
   const config=structuredClone(fixture);
-  config.companies=Array.from({length:5},(_,i)=>({id:`00000000-0000-4000-8000-00000000000${i+1}`,slug:`company-${i+1}`,publicHost:`company-${i+1}.${config.tenantBaseDomain}`,privateFilesPath:`${config.appDir}/data/company-${i+1}/private-files`}));
+  config.companies=Array.from({length:5},(_,i)=>({id:`00000000-0000-4000-8000-00000000000${i+1}`,slug:`company-${i+1}`,clientJwtKeyId:`company-${i+1}-client-v1`,publicHost:`company-${i+1}.${config.tenantBaseDomain}`,privateFilesPath:`${config.appDir}/data/company-${i+1}/private-files`}));
   config.databasePools.applicationBudget=120;
   const files=render(config),{services}=JSON.parse(files['compose.json']);
   const business=Object.values(services).filter(s=>s.command?.[0]?.startsWith('kabipay-')&&!['kabipay-auth','kabipay-ops','kabipay-organization','kabipay-tenant-maintenance'].includes(s.command[0]));

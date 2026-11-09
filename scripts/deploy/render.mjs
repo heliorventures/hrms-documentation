@@ -31,9 +31,10 @@ export function validate(config) {
   // Connect, backups and non-HRMS applications need a separate PG reserve.
   required(20*(config.companies.length*pools.perCompany+pools.opsPerService)<=pools.applicationBudget,
     'Shared application database pools exceed the declared connection budget');
-  const ids=new Set(), slugs=new Set(), hosts=new Set([config.publicHost,config.apiHost??config.publicHost]), storage=[];
+  const ids=new Set(), slugs=new Set(), kids=new Set(), hosts=new Set([config.publicHost,config.apiHost??config.publicHost]), storage=[];
   for(const c of config.companies) {
     required(uuidPattern.test(c.id??'') && !ids.has(c.id), 'Invalid/duplicate company UUID'); ids.add(c.id);
+    required(/^[A-Za-z0-9_.-]{1,100}$/.test(c.clientJwtKeyId??'')&&!kids.has(c.clientJwtKeyId),'Explicit unique company client JWT key ID is required');kids.add(c.clientJwtKeyId);
     required(/^[a-z][a-z0-9-]{0,30}$/.test(c.slug??'') && !slugs.has(c.slug), 'Invalid/duplicate company slug'); slugs.add(c.slug);
     host(c.publicHost); required(!hosts.has(c.publicHost),'Duplicate public host'); hosts.add(c.publicHost);
     required(c.publicHost===`${c.slug}.${host(config.tenantBaseDomain)}`, 'Company hostname must match tenant slug and base domain');
