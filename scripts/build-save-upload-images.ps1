@@ -74,6 +74,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 . (Join-Path $PSScriptRoot 'deploy/Remote.ps1')
+. (Join-Path $PSScriptRoot 'deploy/DependencySecurity.ps1')
 if ($CaddySiteAddress) { throw 'CaddySiteAddress is deprecated: shared Caddy configuration uses the separate reviewed platform procedure, not HRMS image upload/deployment.' }
 Assert-RemoteValue $RemoteDir 'RemoteDir'
 Assert-RemoteValue $AppDir 'AppDir'
@@ -261,6 +262,10 @@ Write-Host "  UI:      $UiDir"
 Write-Host "  Events:  $EventsDir"
 
 New-Item -ItemType Directory -Path $OutDir -Force | Out-Null
+
+Assert-DependencySecurity -SourceDirectory $GatewayDir -Role 'Gateway'
+Assert-DependencySecurity -SourceDirectory $UiDir -Role 'UI'
+Assert-DependencySecurity -SourceDirectory $EventsDir -Role 'Organization events'
 
 Run-Command "Building $SvcImage" {
     docker build -t $SvcImage $SvcDir
