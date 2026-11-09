@@ -2,7 +2,7 @@
 .SYNOPSIS
 Render and release HRMS applications independently of the shared VPS platform.
 .DESCRIPTION
-Use -Manifest for company-bound organization deployments. Platform setup,
+Use -Manifest for shared-service organization deployments. Platform setup,
 PostgreSQL provisioning, ClickHouse migration, Kafka and root Caddy have separate
 operator steps. Use -RenderOnly for local review artifacts without SSH/SCP.
 #>
@@ -30,7 +30,7 @@ if ($Manifest) {
     $config=Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json
     $config | Add-Member -NotePropertyName tag -NotePropertyValue $Tag -Force
     $config | Add-Member -NotePropertyName appDir -NotePropertyValue $AppDir -Force
-} else { throw 'Supply -Manifest with the bound company layout. Rollback uses the previous reviewed release artifacts.' }
+} else { throw 'Supply -Manifest with the shared company layout. Rollback uses the previous reviewed release artifacts.' }
 if ($PublicBaseUrl -or $ApiBaseUrl) { throw 'Configure public origins in the reviewed company manifest.' }
 $json=$config | ConvertTo-Json -Depth 25
 [System.IO.File]::WriteAllText($manifestPath,$json,[System.Text.UTF8Encoding]::new($false))
@@ -62,6 +62,7 @@ if ($SyncCompose) {
 Copy-Remote (Join-Path $PSScriptRoot 'deploy/release.sh') "$AppDir/scripts/release.sh"
 Copy-Remote (Join-Path $PSScriptRoot 'deploy/reconcile-env.sh') "$AppDir/scripts/reconcile-env.sh"
 Copy-Remote (Join-Path $PSScriptRoot 'deploy/check-inventory.sh') "$AppDir/scripts/check-inventory.sh"
+Copy-Remote (Join-Path $PSScriptRoot 'deploy/check-shared-config.mjs') "$AppDir/scripts/check-shared-config.mjs"
 if ($Up) {
     Copy-Remote $inventory.FullName "$AppDir/cutover-inventory.txt"
     Invoke-Remote "set -eu; chmod 600 '$AppDir/cutover-inventory.txt'"

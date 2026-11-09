@@ -37,6 +37,13 @@ if [ "$mode" = organization ]; then
         if ! effective_command="$(docker inspect --format '{{range .Config.Entrypoint}}{{println .}}{{end}}{{range .Config.Cmd}}{{println .}}{{end}}' "$container" 2>/dev/null)"; then worker_inventory_failed; fi
         # Includes absolute executables and commands launched through sh -c.
         [[ ! "$effective_command" =~ $retired_worker_pattern ]] || retired_worker_running
+        if ! old_service="$(docker inspect --format '{{index .Config.Labels "com.docker.compose.service"}}' "$container" 2>/dev/null)"; then worker_inventory_failed; fi
+        # Compose up retains orphans. Do not run old company job writers beside
+        # the shared processes, and never use --remove-orphans on this shared VPS.
+        if [[ "$old_service" =~ ^(auth|gateway|ui|ingress|source|maintenance|employee|leave|attendance|payroll|tax|benefits|expense|recruitment|performance|lms|succession|compensation|assets|grievance|workflow|notification|analytics|survey)- ]]; then
+            echo 'Previous company application containers are still running. Complete the reviewed writer freeze and stop the old company application fleet before shared rollout; no container is stopped automatically.' >&2
+            exit 1
+        fi
     done
 fi
 if [ "$start_apps" = 1 ]; then
@@ -50,6 +57,10 @@ if [ "$load_images" = 1 ]; then
     done
 fi
 if [ "$start_apps" = 1 ]; then
+    docker run --rm --network none --read-only --memory 128m --user 0 \
+        --mount "type=bind,source=$app_dir,target=$app_dir,readonly" \
+        --entrypoint node "kabipay-organization-events:$tag" \
+        "$app_dir/scripts/check-shared-config.mjs" "$app_dir"
     while IFS= read -r files_path; do
         [ -n "$files_path" ] || continue
         test -d "$files_path"

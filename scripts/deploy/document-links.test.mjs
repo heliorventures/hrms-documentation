@@ -18,6 +18,8 @@ test('architecture and mirrors preserve IDs, local links and unchanged frozen ba
       await assert.doesNotReject(access(target),`missing local reference ${href} in ${file}`);
     }
   }
-  const frozen=await readFile(path.join(doc,'docs/superpowers/specs/2026-10-19-organization-recorded-baseline.html'));
+  // Git may check this text artifact out with CRLF on Windows. Freeze the
+  // canonical text, not the workstation's checkout line-ending setting.
+  const frozen=(await readFile(path.join(doc,'docs/superpowers/specs/2026-10-19-organization-recorded-baseline.html'),'utf8')).replaceAll('\r\n','\n');
   assert.equal(createHash('sha256').update(frozen).digest('hex'),'ae0e0aa8df303f62ce6cd85e840204e76c251b37f73265f65570792bdc2ef1e4');
 });

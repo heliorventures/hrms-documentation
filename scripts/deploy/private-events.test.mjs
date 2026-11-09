@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {render} from './render.mjs';
 const fixture=JSON.parse(readFileSync(new URL('../../deploy/hrms/manifest.example.json',import.meta.url)));
-test('retirement release deploys bound maintenance and no retired worker binary',()=>{
+test('retirement release deploys shared maintenance and no retired worker binary',()=>{
  const {services}=JSON.parse(render(fixture)['compose.json']);
  assert(!Object.values(services).some(s=>s.command?.includes('kabipay-outbox-worker')));
- for(const c of fixture.companies){const service=services[`maintenance-${c.slug}`];assert.equal(service.command[0],'kabipay-tenant-maintenance');assert.equal(service.environment.KABIPAY_BOUND_TENANT_ID,c.id);}
+ const service=services['shared-maintenance'];assert.equal(service.command[0],'kabipay-tenant-maintenance');assert.equal(service.environment.KABIPAY_BOUND_TENANT_ID,undefined);assert.equal(service.environment.KABIPAY_COMPANY_CONFIG_FILE,'/run/company-config/companies.json');
  assert.throws(()=>render({...fixture,mode:'legacy',companies:[]}));
 });
 test('private purpose workers have scoped mounts and no source database network or env file',()=>{
@@ -22,10 +22,10 @@ test('private purpose workers have scoped mounts and no source database network 
 test('source egress ingress requires mTLS and public routes exclude every private endpoint',()=>{
  const files=render(fixture),{services}=JSON.parse(files['compose.json']);
  for(const c of fixture.companies){
-  const proxy=files[`caddy/source-${c.slug}.caddy`];assert(proxy.includes('/internal/private-events/delivery'));assert(proxy.includes('/internal/private-events/ownership'));assert(proxy.includes('require_and_verify'));assert(proxy.includes('private-delivery-client-ca.pem'));
-  assert.equal(services[`employee-${c.slug}`].environment.KABIPAY_PRIVATE_EVENT_KEYS_FILE,'/run/private-events/keys.json');
-  assert(services[`analytics-${c.slug}`].networks.includes('private-history'));
-  assert(!services[`auth-${c.slug}`].volumes.some(v=>v.source.includes('/private-events/')));
+  const proxy=files['caddy/shared-source.caddy'];assert(proxy.includes('/internal/private-events/delivery'));assert(proxy.includes('/internal/private-events/ownership'));assert(proxy.includes('require_and_verify'));assert(proxy.includes('private-delivery-client-ca.pem'));
+  assert.equal(services['shared-employee'].environment.KABIPAY_COMPANY_CONFIG_FILE,'/run/company-config/companies.json');
+  assert(services['shared-analytics'].networks.includes('private-history'));
+  assert(!services['shared-auth'].volumes.some(v=>v.source.includes('/private-events/')));
  }
  assert(files['caddy/company-sites.caddy'].includes('respond @private 404'));
 });

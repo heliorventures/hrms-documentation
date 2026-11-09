@@ -2,6 +2,7 @@ import {readFile, mkdir, writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
+import {shareCompanyServices} from './shared-services.mjs';
 
 const tenantServices = {employee:4013, leave:4014, attendance:4015, payroll:4016, tax:4017,
   benefits:4018, expense:4019, recruitment:4020, performance:4021, lms:4022, succession:4023,
@@ -15,7 +16,7 @@ function host(value) { required(typeof value==='string' && hostPattern.test(valu
 function safePath(value) { required(typeof value==='string' && /^\/[a-zA-Z0-9_./-]+$/.test(value) && !value.split('/').includes('..'), 'Invalid absolute deployment path'); return path.posix.normalize(value).replace(/\/$/,''); }
 
 export function validate(config) {
-  required(config && config.version===1 && config.mode==='organization', 'This release requires the bound company layout; use the previous release artifacts for rollback');
+  required(config && config.version===1 && config.mode==='organization' && config.applicationLayout==='shared', 'This release requires the shared company layout; use previous artifacts for rollback');
   required(/^[a-zA-Z0-9_.-]+$/.test(config.tag??''), 'Invalid image tag');
   const appDir=safePath(config.appDir??'/opt/apps/hrms');
   const platformDir=safePath(config.platformDir??'/opt/apps');
@@ -24,6 +25,12 @@ export function validate(config) {
   required(/^[a-zA-Z0-9_.-]+$/.test(network), 'Invalid shared network');
   host(config.publicHost); host(config.apiHost??config.publicHost);
   required(Array.isArray(config.companies) && config.companies.length>0 && config.companies.length<=100, 'Configure 1..100 companies');
+  const pools=config.databasePools;
+  required(pools && ['perCompany','opsPerService','applicationBudget'].every(k=>Number.isSafeInteger(pools[k])&&pools[k]>0), 'Explicit database pool budgets are required');
+  // 18 business processes + Auth + maintenance. Central operator/organization,
+  // Connect, backups and non-HRMS applications need a separate PG reserve.
+  required(20*(config.companies.length*pools.perCompany+pools.opsPerService)<=pools.applicationBudget,
+    'Shared application database pools exceed the declared connection budget');
   const ids=new Set(), slugs=new Set(), hosts=new Set([config.publicHost,config.apiHost??config.publicHost]), storage=[];
   for(const c of config.companies) {
     required(uuidPattern.test(c.id??'') && !ids.has(c.id), 'Invalid/duplicate company UUID'); ids.add(c.id);
@@ -71,7 +78,6 @@ export function render(input) {
   files['config/ui-config.json']=JSON.stringify({gatewayUrl:`https://${c.apiHost}/graphql`,authUrl:`https://${c.apiHost}`,tenantBaseDomain:c.tenantBaseDomain},null,2);
   const opsRoutes=publicRoutes({plane:'ops',auth:'kabipay-auth:4001',gateway:'kabipay-gateway:4009',ui:'kabipay-ui:80'});
   files['caddy/legacy-routes.caddy']=opsRoutes;
-  let sites='';
   // No alternate unbound tenant/HMAC path may remain public.
   services['kabipay-gateway'].environment.KABIPAY_GATEWAY_PLANE='ops';
   Object.assign(networks,{organization:{external:true,name:'hrms_organization'},metadata:{external:true,name:'hrms_metadata'},sources:{external:true,name:'hrms_sources'},'private-history':{internal:true}});
@@ -79,51 +85,9 @@ export function render(input) {
   const sharedCa=mount(`${cfg}/tls/organization-ca.pem`,'/run/tls/organization-ca.pem');
   const identities={}, endpoints={};
   for(const company of c.companies) {
-    const slug=company.slug, local=`company-${slug}`, egress=`egress-${slug}`, source=`source-${slug}`, auth=`auth-${slug}`, ingress=`ingress-${slug}`, gateway=`gateway-${slug}`;
-    networks[local]={internal:true};
-    networks[egress]={internal:false};
-    const binding={KABIPAY_BOUND_TENANT_ID:company.id,KABIPAY_CLIENT_JWT_MODE:'rs256',KABIPAY_ORGANIZATION_HTTP_CA_FILE:'/run/tls/organization-ca.pem'};
-    const companyEnv=env(`companies/${slug}/runtime`);
-    const sourceVolumes=[publicKeys,sharedCa,mount(company.privateFilesPath,'/var/lib/kabipay/private-files',false)];
-    services[auth]=runtime('kabipay-auth',env(`companies/${slug}/auth`),[local,'sources','metadata',egress],{...binding,KABIPAY_AUTH_PLANE:'client'},[publicKeys,sharedCa,mount(`${secrets}/${slug}/auth`,'/run/auth-secrets')]);
-    for(const service of Object.keys(tenantServices)) {
-      const serviceName=`${service}-${slug}`;
-      services[serviceName]=runtime(`kabipay-${service}`,companyEnv,[local,'sources','metadata',egress],{
-        ...binding,KABIPAY_SERVICE_ID:`kabipay-${service}`,KABIPAY_SERVICE_PRIVATE_KEY_FILE:'/run/service-secrets/service.key',
-        KABIPAY_ORGANIZATION_POLICY_URL:'https://organization-internal:8443',
-        KABIPAY_EMPLOYEE_PUBLIC_BASE:`https://${company.publicHost}`,KABIPAY_NOTIFICATION_PUBLIC_BASE:`https://${company.publicHost}`,
-        KABIPAY_LOCAL_FILE_ROOT:'/var/lib/kabipay/private-files',
-      },[...sourceVolumes,mount(`${secrets}/${slug}/${service}`,'/run/service-secrets')]);
-      if(['employee','leave','attendance','expense','notification','survey','analytics'].includes(service)){
-        services[serviceName].volumes.push(mount(`${secrets}/${slug}/private-events/${service}`,'/run/private-events'));
-        services[serviceName].environment.KABIPAY_PRIVATE_EVENT_KEYS_FILE='/run/private-events/keys.json';
-      }
-      if(['survey','analytics'].includes(service)){
-        Object.assign(services[serviceName].environment,{KABIPAY_PRIVATE_HISTORY_CLIENT_FILE:'/run/private-events/audit-client.json',KABIPAY_PRIVATE_HISTORY_CLIENT_CERT_FILE:'/run/private-events/client.crt',KABIPAY_PRIVATE_HISTORY_CLIENT_KEY_FILE:'/run/private-events/client.key'});
-        services[serviceName].networks.push('private-history');
-      }
-      if(service==='analytics')services[serviceName].environment.KABIPAY_PRIVATE_DELIVERY_HISTORY_CLIENT_FILE='/run/private-events/delivery-client.json';
-      if(service==='employee')Object.assign(services[serviceName].environment,{KABIPAY_PRIVATE_DELIVERY_ADAPTER_FILE:'/run/private-events/delivery-adapter.json',KABIPAY_PRIVATE_DELIVERY_BROKER_OWNER_ID:company.id});
-    }
-    services[`maintenance-${slug}`]=runtime('kabipay-tenant-maintenance',companyEnv,[local,'sources','metadata',egress],{...binding,KABIPAY_PRIVATE_EVENT_KEYS_FILE:'/run/private-events/keys.json'},[...sourceVolumes,mount(`${secrets}/${slug}/private-events/maintenance`,'/run/private-events')]);
+    const source=`source-${company.slug}`;
     identities[company.id]=`https://${source}:8443/auth/client/organization-identity`;
     endpoints[company.id]=Object.fromEntries(commandServices.map((s,i)=>[`kabipay-${s}`,`https://${source}:${8444+i}/internal/organization/command`]));
-    services[gateway]={image:image('gateway'),restart:'unless-stopped',networks:[local],environment:{NODE_ENV:'production',KABIPAY_SUBGRAPH_BASE_URL:`http://unused-${slug}`,KABIPAY_SUBGRAPH_ENDPOINTS:JSON.stringify(Object.fromEntries(Object.entries(tenantServices).map(([s,port])=>[s,`http://${s}-${slug}:${port}/graphql`]))),KABIPAY_OPS_SUBGRAPH_URL:'http://kabipay-subgraphs:4010/graphql',KABIPAY_ORGANIZATION_SUBGRAPH_URL:'http://organization:4031/graphql',KABIPAY_ORGANIZATION_ENABLED:'true',KABIPAY_ALLOW_PARTIAL_SUBGRAPHS:'false'}};
-    // The gateway reaches only fixed tenant subgraphs plus ops/organization networks.
-    services[gateway].networks.push('app-network','organization');
-    const ui=`ui-${slug}`;
-    services[ui]={image:image('ui'),restart:'unless-stopped',networks:[local],volumes:[mount(`${cfg}/ui-${slug}.json`,'/usr/share/nginx/html/config.json'),mount(`${c.appDir}/media/video-guides`,'/srv/video-guides')]};
-    files[`config/ui-${slug}.json`]=JSON.stringify({gatewayUrl:`https://${company.publicHost}/graphql`,authUrl:`https://${company.publicHost}`,tenantBaseDomain:c.tenantBaseDomain},null,2);
-    files[`caddy/public-${slug}.caddy`]=`{\n auto_https off\n admin off\n}\n:80 {\n${publicRoutes({plane:'company',auth:`${auth}:4001`,gateway:`${gateway}:4009`,employee:`employee-${slug}:4013`,notification:`notification-${slug}:4028`,ui:`${ui}:80`})}}\n`;
-    files[`caddy/source-${slug}.caddy`]=`{\n admin off\n auto_https off\n}\n`+[
-      `https://${source}:8443 {\n tls /run/tls/server.pem /run/tls/server.key\n @allowed path /auth/client/organization-identity /auth/internal/account-eligibility /auth/internal/employment-eligibility\n handle @allowed {\n reverse_proxy ${auth}:4001\n }\n respond 404\n}\n`,
-      ...commandServices.map((s,i)=>`https://${source}:${8444+i} {\n tls /run/tls/server.pem /run/tls/server.key\n handle /internal/organization/* {\n reverse_proxy ${s}-${slug}:${tenantServices[s]}\n }\n respond 404\n}\n`),
-      `https://${source}:8450 {\n tls /run/tls/server.pem /run/tls/server.key {\n client_auth {\n mode require_and_verify\n trust_pool file /run/tls/private-delivery-client-ca.pem\n }\n }\n @delivery path /internal/private-events/delivery /internal/private-events/ownership\n handle @delivery {\n request_body {\n max_size 16KiB\n }\n reverse_proxy employee-${slug}:4013\n }\n respond 404\n}\n`,
-      ...[['payroll',8451],['employee',8452]].map(([s,port])=>`https://${source}:${port} {\n tls /run/tls/server.pem /run/tls/server.key\n handle /internal/finance {\n request_body {\n max_size 128KiB\n }\n reverse_proxy ${s}-${slug}:${tenantServices[s]}\n }\n respond 404\n}\n`),
-    ].join('');
-    services[ingress]={image:'caddy:2.10.2-alpine',restart:'unless-stopped',read_only:true,tmpfs:['/data','/config'],networks:[local,'app-network'],volumes:[mount(`${c.appDir}/caddy/public-${slug}.caddy`,'/etc/caddy/Caddyfile')]};
-    services[source]={image:'caddy:2.10.2-alpine',restart:'unless-stopped',read_only:true,tmpfs:['/data','/config'],networks:[local,'organization'],volumes:[mount(`${c.appDir}/caddy/source-${slug}.caddy`,'/etc/caddy/Caddyfile'),mount(`${secrets}/${slug}/tls`,'/run/tls')]};
-    sites+=`${company.publicHost} {\n tls /etc/caddy/certs/origin.pem /etc/caddy/certs/origin.key\n @private path /internal /internal/* /auth/internal /auth/internal/* /auth/client/organization-identity\n respond @private 404\n reverse_proxy ${ingress}:80\n}\n`;
   }
   services.organization=runtime('kabipay-organization',env('organization'),['organization','metadata'],{
     KABIPAY_ORGANIZATION_EXECUTION_ENABLED:'true',KABIPAY_ORGANIZATION_IDENTITY_ENDPOINTS:JSON.stringify(identities),
@@ -151,12 +115,11 @@ export function render(input) {
     Object.assign(services[name].environment,{[purpose==='audit'?'KABIPAY_PRIVATE_HISTORY_SERVER_FILE':'KABIPAY_PRIVATE_DELIVERY_HISTORY_SERVER_FILE']:'/run/secrets/bindings.json',PRIVATE_HISTORY_TLS_KEY_FILE:'/run/secrets/server.key',PRIVATE_HISTORY_TLS_CERT_FILE:'/run/secrets/server.crt',PRIVATE_HISTORY_CLIENT_CA_FILE:'/run/secrets/source-client-ca.crt',[purpose==='audit'?'PRIVATE_HISTORY_PORT':'PRIVATE_DELIVERY_HISTORY_PORT']:String(port)});
   }
   services['private-operator-audit']={...worker('private-operator-audit','private/worker'),networks:['organization'],environment:{NODE_EXTRA_CA_CERTS:'/run/secrets/clickhouse-ca.crt',PRIVATE_EVENT_BINDING_FILE:'/etc/organization/operator-audit-binding.json',KABIPAY_PRIVATE_EVENT_KEYS_FILE:'/run/secrets/keys.json'}};
-  files['caddy/company-sites.caddy']=sites;
-  files['compose.json']=JSON.stringify({name:'apps',services,networks},null,2)+'\n';
-  files['finance-checks.txt']=c.companies.map(company=>`${env(`companies/${company.slug}/runtime`)}|employee-${company.slug} payroll-${company.slug}`).join('\n')+'\n';
-  files['private-files.txt']=c.companies.map(company=>company.privateFilesPath).join('\n')+'\n';
   files['required-tenants.txt']=c.companies.map(v=>v.id).sort().join(',')+'\n';
+  shareCompanyServices(c,files,services,networks,tenantServices,commandServices,publicRoutes);
+  files['compose.json']=JSON.stringify({name:'apps',services,networks},null,2)+'\n';
   files['release.json']=JSON.stringify({version:1,tag:c.tag,mode:c.mode,tenantBaseDomain:c.tenantBaseDomain,
+    applicationLayout:c.applicationLayout,databasePools:c.databasePools,
     companyBindings:c.companies.map(({id,slug,publicHost})=>({id,slug,publicHost})),
     artifacts:[...Object.keys(files),'release.json','release.sha256'],services:Object.keys(services),publicHosts:[c.apiHost,...c.companies.map(v=>v.publicHost)]},null,2);
   files['release.sha256']=Object.entries(files).map(([name,content])=>createHash('sha256').update(content).digest('hex')+'  '+name).join('\n')+'\n';

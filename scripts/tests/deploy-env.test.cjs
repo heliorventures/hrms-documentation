@@ -333,6 +333,9 @@ if [ "$1" = container ]; then exit 1; fi
 if [ "$1" = inspect ]; then
  [ "$WORKER_CASE" != inspect-error ] || exit 81
  case "$3" in
+  *.Config.Labels*) [ "$WORKER_CASE" != old-application ] || printf 'maintenance-company-a\\n'; exit 0;;
+ esac
+ case "$3" in
   *.Config.Entrypoint*) [ "$WORKER_CASE" != entrypoint ] || printf '/app/kabipay-outbox-worker\\n';;
  esac
  case "$3" in
@@ -355,12 +358,13 @@ exit 0
 MOCK
 chmod +x /tmp/bin/docker
 export PATH="/tmp/bin:$PATH"
-for WORKER_CASE in absolute-command shell-command entrypoint old-label explicit-outside-project inspect-error inventory-error; do
+for WORKER_CASE in absolute-command shell-command entrypoint old-label explicit-outside-project inspect-error inventory-error old-application; do
  export WORKER_CASE
  printf '' > /tmp/docker.log
  if bash /fixtures/release.sh /tmp/app /tmp/app/images release-002 0 1 0 organization >/tmp/output 2>&1; then exit 57; fi
  case "$WORKER_CASE" in
   inspect-error|inventory-error) grep -q 'safety inventory failed' /tmp/output;;
+  old-application) grep -q 'Previous company application containers' /tmp/output;;
   *) grep -q 'Retired delivery worker is running' /tmp/output;;
  esac
  ! grep -q ' up ' /tmp/docker.log

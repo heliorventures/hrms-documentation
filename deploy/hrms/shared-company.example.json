@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "companies": [
+    {
+      "tenant_id": "11111111-1111-4111-8111-111111111111",
+      "database_url": "postgres://company_a_employee:REPLACE_SECRET@postgres:5432/company_a?sslmode=verify-full&sslrootcert=/run/tls/organization-ca.pem",
+      "schema": "tenant_11111111",
+      "public_origin": "https://company-a.heliorsoft.com",
+      "settings": {
+        "KABIPAY_PRIVATE_EVENT_KEYS_FILE": "/run/companies/11111111-1111-4111-8111-111111111111/private-events/keys.json",
+        "KABIPAY_PRIVATE_DELIVERY_ADAPTER_FILE": "/run/companies/11111111-1111-4111-8111-111111111111/private-events/delivery-adapter.json",
+        "KABIPAY_PRIVATE_DELIVERY_BROKER_OWNER_ID": "11111111-1111-4111-8111-111111111111"
+      }
+    }
+  ]
+}

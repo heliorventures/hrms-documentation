@@ -1,6 +1,8 @@
 {
   "version": 1,
   "mode": "organization",
+  "applicationLayout": "shared",
+  "databasePools": {"perCompany": 1, "opsPerService": 1, "applicationBudget": 60},
   "tag": "helior-organization-001",
   "platformDir": "/opt/apps",
   "appDir": "/opt/apps/hrms",
