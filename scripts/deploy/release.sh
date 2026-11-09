@@ -12,7 +12,7 @@ mode="$7"
 cd "$app_dir"
 compose=(docker compose --project-name apps --file "$app_dir/compose.json")
 "${compose[@]}" config --quiet
-if [ "$mode" = organization ]; then
+if [ "$start_apps" = 1 ]; then
     retired_worker_running() {
         echo 'Retired delivery worker is running. Complete reviewed company delivery cutover before organization rollout; no worker is stopped automatically.' >&2
         exit 1
@@ -50,11 +50,17 @@ if [ "$start_apps" = 1 ]; then
     bash "$app_dir/scripts/check-inventory.sh" "$app_dir" "$tag"
 fi
 if [ "$load_images" = 1 ]; then
+    # Validate the complete archive set before loading the first image.
+    test -f "$image_dir/SHA256SUMS"
+    [ "$(wc -l < "$image_dir/SHA256SUMS")" -eq 4 ] || { echo 'Exactly four image checksums required.' >&2; exit 1; }
     for image in svc gateway ui organization-events; do
-        test -f "$image_dir/kabipay-$image-$tag.tar"
-        docker load --input "$image_dir/kabipay-$image-$tag.tar"
-        docker image inspect "kabipay-$image:$tag" --format '{{.Id}}' >/dev/null
+        name="kabipay-$image-$tag.tar"
+        expected="$(awk -v name="$name" '{sub(/\r$/, "")} $2 == name && NF == 2 {print $1}' "$image_dir/SHA256SUMS")"
+        [[ "$expected" =~ ^[a-fA-F0-9]{64}$ ]] || { echo 'Missing or duplicate image checksum.' >&2; exit 1; }
+        actual="$(sha256sum -- "$image_dir/$name")"
+        [ "${actual%% *}" = "${expected,,}" ] || { echo 'Image checksum mismatch.' >&2; exit 1; }
     done
+    python3 "$app_dir/scripts/image-archive.py" "$image_dir" "$tag" --load
 fi
 if [ "$start_apps" = 1 ]; then
     docker run --rm --network none --read-only --memory 128m --user 0 \

@@ -47,6 +47,17 @@ param(
 
     [string]$Manifest,
 
+    [string]$InventoryReport,
+
+    [string]$InventoryService,
+
+    [string]$InventoryDatabase,
+
+    [string]$ReleaseOutputDir,
+
+    # Reuse reviewed archives and SHA256SUMS from OutputDir; no local build.
+    [switch]$SkipBuild,
+
     [string]$OutputDir = 'dist-images',
 
     [string]$SourceRoot,
@@ -188,7 +199,7 @@ function Run-Command {
     }
 }
 
-Require-Command docker
+if (-not $SkipBuild) { Require-Command docker }
 
 if (-not $SkipUpload) {
     Require-Command ssh
@@ -208,9 +219,12 @@ if ($SkipUpload -and $DeployAfterUpload) {
 }
 
 if ($DeployAfterUpload) {
-    if ([string]::IsNullOrWhiteSpace($Manifest) -and [string]::IsNullOrWhiteSpace($PublicBaseUrl)) {
-        throw "Manifest or PublicBaseUrl is required when DeployAfterUpload is set"
+    if (-not $Manifest -or -not $ReleaseOutputDir -or ((-not $InventoryReport) -and (-not $InventoryService -or -not $InventoryDatabase))) {
+        throw 'DeployAfterUpload requires Manifest, ReleaseOutputDir and either InventoryReport or InventoryService plus InventoryDatabase to issue a fresh receipt after upload.'
     }
+    if ($InventoryReport -and ($InventoryService -or $InventoryDatabase)) { throw 'Choose an existing inventory receipt or fresh inventory service, not both.' }
+    if ($InventoryReport -and -not (Test-Path -LiteralPath $InventoryReport -PathType Leaf)) { throw 'Inventory report does not exist.' }
+    if ($InventoryService -and ($InventoryService -cnotmatch '^[a-z][a-z0-9_.-]*$' -or $InventoryDatabase -cnotmatch '^[a-z][a-z0-9_]{0,62}$')) { throw 'Invalid read-only inventory service/database.' }
 
     if (-not (Test-Path $DeployScript)) {
         throw "Missing deploy script: $DeployScript"
@@ -222,6 +236,7 @@ if (-not $SkipUpload) {
     Initialize-Remote $VpsHost $VpsUser $SshPort $SshIdentityFile
 }
 
+if (-not $SkipBuild) {
 if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
     $ResolvedSourceRoot = Resolve-FullPath $Root
 } else {
@@ -299,6 +314,26 @@ Run-Command "Saving $EventsImage to $EventsTar" {
     docker save $EventsImage -o $EventsTar
 }
 
+$checksumLines = @($SvcTar,$GatewayTar,$UiTar,$EventsTar) | ForEach-Object {
+    (Get-FileHash -LiteralPath $_ -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + [IO.Path]::GetFileName($_)
+}
+[IO.File]::WriteAllText((Join-Path $OutDir 'SHA256SUMS'),(($checksumLines -join "`n")+"`n"),[Text.UTF8Encoding]::new($false))
+}
+
+# Never regenerate a checksum for reused archives: it would bless corruption.
+$checksumPath=Join-Path $OutDir 'SHA256SUMS'
+if (-not (Test-Path -LiteralPath $checksumPath -PathType Leaf)) { throw 'Missing SHA256SUMS for reviewed archives.' }
+$expected=@{}
+foreach($line in [IO.File]::ReadAllLines($checksumPath)) {
+    if($line -notmatch '^([a-fA-F0-9]{64})  (kabipay-(?:svc|gateway|ui|organization-events)-[a-zA-Z0-9_.-]+\.tar)$' -or $expected.ContainsKey($Matches[2])) { throw 'Invalid or duplicate archive checksum entry.' }
+    $expected[$Matches[2]]=$Matches[1]
+}
+if($expected.Count -ne 4){throw 'Exactly four release archive checksums required.'}
+foreach($file in @($SvcTar,$GatewayTar,$UiTar,$EventsTar)) {
+    $name=[IO.Path]::GetFileName($file)
+    if(-not $expected.ContainsKey($name) -or -not (Test-Path -LiteralPath $file -PathType Leaf) -or (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash -ne $expected[$name]) { throw "Archive checksum mismatch: $name" }
+}
+
 if ($SkipUpload) {
     Write-Host ""
     Write-Host "Upload skipped. Image archives are ready:" -ForegroundColor Green
@@ -306,7 +341,7 @@ if ($SkipUpload) {
     Write-Host "  $GatewayTar"
     Write-Host "  $UiTar"
     Write-Host "  $EventsTar"
-    exit 0
+    return
 }
 
 $Remote = $script:RemoteTarget
@@ -328,10 +363,19 @@ Run-Command "Preparing remote image directory and archive on $Remote" {
 }
 
 Run-Command "Uploading image archives to ${Remote}:$RemoteDir" {
-    Invoke-Native 'scp' ($script:ScpArguments + @($SvcTar,$GatewayTar,$UiTar,$EventsTar,"${Remote}:$RemoteDir/"))
+    Invoke-Native 'scp' ($script:ScpArguments + @($SvcTar,$GatewayTar,$UiTar,$EventsTar,$checksumPath,"${Remote}:$RemoteDir/"))
 }
 
+Invoke-Remote "set -eu; cd '$RemoteDir'; sha256sum --check SHA256SUMS"
+
 if ($DeployAfterUpload) {
+    if($InventoryService) {
+        # A build/upload can take hours. Issue the fifteen-minute receipt only
+        # after upload, against the exact reviewed manifest/tag/output.
+        & $DeployScript -Tag $Tag -Manifest $Manifest -OutputDir $ReleaseOutputDir -AppDir $AppDir -ImageDir $RemoteDir -RenderOnly
+        $InventoryReport=Join-Path $ReleaseOutputDir ('cutover-inventory-'+[guid]::NewGuid().ToString('N')+'.txt')
+        Invoke-Native 'node' @((Join-Path $Root 'hrms-database/provisioning/organization/check-rollout.cjs'),'--release-dir',$ReleaseOutputDir,'--service',$InventoryService,'--database',$InventoryDatabase,'--output',$InventoryReport)
+    }
     $DeployArgs = @{
         Tag = $Tag
         VpsHost = $VpsHost
@@ -341,6 +385,8 @@ if ($DeployAfterUpload) {
         AppDir = $AppDir
         ImageDir = $RemoteDir
         Deploy = $true
+        InventoryReport = $InventoryReport
+        OutputDir = $ReleaseOutputDir
     }
     if ($Manifest) { $DeployArgs.Manifest = $Manifest }
     if ($ApiBaseUrl) { $DeployArgs.ApiBaseUrl = $ApiBaseUrl }
@@ -349,11 +395,11 @@ if ($DeployAfterUpload) {
     Run-Command "Deploying uploaded images on $Remote" {
         & $DeployScript @DeployArgs
     }
-    exit 0
+    return
 }
 
 Write-Host ""
 Write-Host "Done. Image archives uploaded successfully." -ForegroundColor Green
 Write-Host ""
 Write-Host "Next deployment command:" -ForegroundColor Yellow
-Write-Host "  .\scripts\deploy-on-vps.ps1 -Tag $Tag -VpsHost $VpsHost -VpsUser $VpsUser -Manifest <reviewed-manifest.json> -AppDir $AppDir -ImageDir $RemoteDir -Deploy"
+Write-Host "  .\scripts\deploy-on-vps.ps1 -Tag $Tag -VpsHost $VpsHost -VpsUser $VpsUser -Manifest <reviewed-manifest.json> -OutputDir <reviewed-render-directory> -AppDir $AppDir -ImageDir $RemoteDir -Deploy -InventoryReport <fresh-inventory.txt>"

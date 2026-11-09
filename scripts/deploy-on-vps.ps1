@@ -63,6 +63,7 @@ Copy-Remote (Join-Path $PSScriptRoot 'deploy/release.sh') "$AppDir/scripts/relea
 Copy-Remote (Join-Path $PSScriptRoot 'deploy/reconcile-env.sh') "$AppDir/scripts/reconcile-env.sh"
 Copy-Remote (Join-Path $PSScriptRoot 'deploy/check-inventory.sh') "$AppDir/scripts/check-inventory.sh"
 Copy-Remote (Join-Path $PSScriptRoot 'deploy/check-shared-config.mjs') "$AppDir/scripts/check-shared-config.mjs"
+Copy-Remote (Join-Path $PSScriptRoot 'deploy/image-archive.py') "$AppDir/scripts/image-archive.py"
 if ($Up) {
     Copy-Remote $inventory.FullName "$AppDir/cutover-inventory.txt"
     Invoke-Remote "set -eu; chmod 600 '$AppDir/cutover-inventory.txt'"

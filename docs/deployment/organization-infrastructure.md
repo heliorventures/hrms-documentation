@@ -91,6 +91,8 @@ See [phase/cleanup audit](organization-phase-cleanup-audit.md) and the dated inf
 
 ## Shared application rollout revision — 2026-11-09
 
+For existing tenants sharing a database, start with the [company database split preflight and staged runbook](../runbooks/company-database-split.md). Creating empty databases and deploying images is insufficient: shared catalog/helper dependencies, pending migrations, service-role grants and final-copy reconciliation must be resolved first.
+
 Use `applicationLayout=shared` and the [shared environment contract](../../deploy/hrms/environment.md#shared-application-services). There are 18 business processes for the fleet, with shared client Auth/gateway/UI/maintenance; database count does not determine application replica count. The process trust boundary now includes its configured companies, while each database, credential, private key, authorization decision and CDC publication remains explicitly scoped. Existing Kafka/ClickHouse installation work is retained.
 
 Before application rollout, render the company catalogues from the central manifest, provision each service's stable `database.json`, and verify the PostgreSQL connection allocation. Database/schema mappings come from the main metadata registry; no per-company database passwords are added to service files. Five company pools per 20 processes at one connection each, plus one metadata connection per process, reserve 120 connections before central services, CDC and other products. The live PostgreSQL limit must be measured and sized explicitly; startup configuration is not a measurement. Sharing a login does not combine PostgreSQL connections across databases.

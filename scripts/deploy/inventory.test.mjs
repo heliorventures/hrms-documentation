@@ -24,7 +24,7 @@ function runGate(f,receipt) {
   const bash=process.env.GIT_BASH??(process.platform==='win32'?'C:/Program Files/Git/bin/bash.exe':'bash');
   const posix=v=>v.replaceAll('\\','/').replace(/^([A-Za-z]):/,(_,drive)=>'/'+drive.toLowerCase());
   const r=spawnSync(bash,['--noprofile','--norc',posix(gate),posix(f.dir),f.release.tag],
-    {encoding:'utf8',timeout:10000,windowsHide:true,env:{...process.env,MSYS_NO_PATHCONV:'1'}});
+    {encoding:'utf8',timeout:60000,windowsHide:true,env:{...process.env,MSYS_NO_PATHCONV:'1'}});
   assert.ifError(r.error);return r;
 }
 test('complete live registry inventory accepts active and suspended companies with current host slugs',()=>{

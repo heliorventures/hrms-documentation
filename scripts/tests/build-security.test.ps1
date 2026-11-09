@@ -10,7 +10,10 @@ function docker {
     if ($args[0] -eq 'run') {
         $runs = @($global:SecurityGateCalls | Where-Object { $_[0] -eq 'run' }).Count
         $global:LASTEXITCODE = if ($runs -eq $global:SecurityGateFailureAt) { 1 } else { 0 }
-    } else { $global:LASTEXITCODE = 0 }
+    } else {
+        if($args[0] -eq 'save') { [IO.File]::WriteAllText($args[3],'synthetic archive') }
+        $global:LASTEXITCODE = 0
+    }
 }
 function Assert-Test([bool]$Condition, [string]$Message) { if (-not $Condition) { throw $Message } }
 try {

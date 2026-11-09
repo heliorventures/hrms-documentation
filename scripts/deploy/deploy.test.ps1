@@ -27,7 +27,7 @@ try {
     & $entry -Tag synthetic-001 -Manifest $inputFile -OutputDir $output -VpsHost synthetic.invalid -Deploy -InventoryReport $inventory
     $uploads=@($global:HrmsDeploymentTestCalls|Where-Object{$_.kind -eq 'scp'})
     $release=Get-Content -LiteralPath (Join-Path $output 'release.json') -Raw|ConvertFrom-Json
-    Assert-Test ($uploads.Count -eq ($release.artifacts.Count+5)) 'Unexpected upload inventory'
+    Assert-Test ($uploads.Count -eq ($release.artifacts.Count+6)) 'Unexpected upload inventory'
     Assert-Test (-not (($uploads|ConvertTo-Json -Depth 10).Contains('stale-secret.env'))) 'Reused output secret uploaded'
     $commands=($global:HrmsDeploymentTestCalls|Where-Object{$_.kind -eq 'ssh'}|ForEach-Object{$_.arguments -join ' '}) -join "`n"
     Assert-Test ($commands.Contains("'/opt/apps/hrms/scripts/release.sh'")) 'Canonical release script not called'
