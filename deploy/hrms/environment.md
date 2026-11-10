@@ -11,7 +11,7 @@ A shared process can access all companies admitted by its deployment inventory a
 | Host file | Contents |
 | --- | --- |
 | `env/shared/auth.env` | Restricted metadata `DATABASE_URL`, client JWT public verification keys for every configured company, service trust keys and existing client Auth settings. No operator signing key. |
-| `env/shared/runtime.env` | Restricted metadata `DATABASE_URL`, all client JWT public keys, delegation public keys, scoped service trust keys, `KABIPAY_SERVICE_KEY_ID` and shared business/Finance configuration. No Auth signing keys or tenant database URL. |
+| `env/shared/runtime.env` | Restricted metadata `DATABASE_URL`, all client JWT public keys, delegation public keys, scoped service trust keys and shared business/Finance configuration. No Auth signing keys or tenant database URL. The renderer supplies each process's signing-key ID from the manifest. |
 | `config/companies/<service>.json` | Generated, non-secret version-2 company catalogue, mounted as `/run/company-config/companies.json`. The renderer creates it from the central manifest for `auth`, `maintenance` and every business service. Includes suspended companies for inventory completeness. Do not hand-edit generated files. |
 | `secrets/shared/<service>/service/` | Only this service's signing/configuration files, mounted at `/run/service-secrets`. Business processes use `service.key`. Auth and maintenance also require this directory for their stable database configuration. |
 | `secrets/shared/<service>/service/database.json` | One stable restricted company-runtime login per service, mounted inside its existing service directory. Renderer sets `KABIPAY_COMPANY_DATABASE_FILE=/run/service-secrets/database.json`. Never uploaded or generated with release artifacts. |
@@ -26,6 +26,8 @@ The renderer supplies `KABIPAY_COMPANY_CONFIG_FILE`, `KABIPAY_CLIENT_JWT_MODE=rs
 
 Company secret settings are selected explicitly by UUID; there is no mutable process environment per request. The renderer writes Auth's `KABIPAY_CLIENT_JWT_KEY_ID` from `clientJwtKeyId` and its `KABIPAY_CLIENT_JWT_PRIVATE_KEY_FILE=/run/companies/<UUID>/auth/client.key`. Each company retains its distinct RSA signing key and each public key is trusted for exactly one company. The Auth process alone mounts `secrets/<slug>/auth` at that company path. Business processes receive only public verification keys. Shared service signing keys are distinct per service; their public trust entries enumerate the configured company IDs for that service. The central organization signer remains separate.
 
+The manifest requires `serviceKeyIds` with exactly the 18 business service names and a unique safe key ID for each, as shown in `manifest.example.json`. The renderer sets `KABIPAY_SERVICE_KEY_ID` independently for every shared business process. Do not assign a common signer ID in `runtime.env`. Auth and maintenance have no business service signer. A reviewed rotation updates the selected manifest ID together with its private key and verifier trust entries; changing an ID does not generate or rotate keys.
+
 Public key formats remain:
 
 ```json
@@ -33,8 +35,10 @@ Public key formats remain:
 ```
 
 ```json
-[{"kid":"employee-service-v1","service":"kabipay-employee","tenant_ids":["11111111-1111-4111-8111-111111111111","22222222-2222-4222-8222-222222222222"],"public_key_file":"/run/public-keys/employee-service.pem"}]
+[{"kid":"shared-employee-v1","service":"kabipay-employee","tenant_ids":["11111111-1111-4111-8111-111111111111","22222222-2222-4222-8222-222222222222"],"public_key_file":"/run/public-keys/employee-service.pem","shared_runtime":true}]
 ```
+
+`shared_runtime:true` is an explicit operator trust decision for that service key and its exact company list (at most100). Omitted or false retains the single-company restriction for business keys. Duplicate/nil/empty company sets, duplicate/unknown shared key IDs and reuse of key material across another service or company scope are rejected. A proof still binds one requested company, service, audience, route and exact body; a signed proof for an unlisted company fails. This option does not apply to client JWT verification keys and never grants business authorization.
 
 `KABIPAY_ORGANIZATION_DELEGATION_PUBLIC_KEYS` maps delegation key ID to public PEM file. Client JWT tenant identity selects ordinary requests. Source proxy `X-Organization-Company-Id` is only a routing candidate: command and eligibility handlers verify a signed credential for that exact company before opening its database. Full live organization policy, source installation, business permission and idempotency checks still apply.
 

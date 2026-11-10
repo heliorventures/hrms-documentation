@@ -56,7 +56,11 @@ test('registry catalogue uses stable service credentials and rejects insecure or
   const compose=JSON.parse(await readFile(path.join(root,'compose.json'),'utf8'));
   const service=compose.services['shared-payroll'],credentials=path.join(root,'database.json');
   service.environment.KABIPAY_COMPANY_DATABASE_FILE='/run/service-secrets/database.json';
-  service.volumes.push({type:'bind',source:credentials,target:'/run/service-secrets/database.json'});
+  Object.assign(service.environment,{KABIPAY_SERVICE_KEY_ID:'shared-payroll-v1',KABIPAY_SERVICE_PRIVATE_KEY_FILE:'/run/service-secrets/service.key'});
+  const key=path.join(root,'service.key');await writeFile(key,'synthetic-key-material');
+  const release=JSON.parse(await readFile(path.join(root,'release.json'),'utf8'));release.serviceKeyIds={payroll:'shared-payroll-v1'};
+  await writeFile(path.join(root,'release.json'),JSON.stringify(release));
+  service.volumes.push({type:'bind',source:credentials,target:'/run/service-secrets/database.json'},{type:'bind',source:key,target:'/run/service-secrets/service.key'});
   config.version=2;
   for(const company of config.companies){delete company.database_url;delete company.schema;}
   await writeFile(file,JSON.stringify(config));await writeFile(path.join(root,'compose.json'),JSON.stringify(compose));
@@ -77,4 +81,24 @@ test('registry catalogue uses stable service credentials and rejects insecure or
   await writeFile(file,JSON.stringify(config));await assert.rejects(checkSharedConfig(root));
   delete config.companies[0].database_url;await writeFile(file,JSON.stringify(config));
   await rm(credentials);await assert.rejects(checkSharedConfig(root));
+}));
+
+test('registry catalogue requires the reviewed signer ID and its private key before startup',()=>fixture(async({root,file,config})=>{
+  const compose=JSON.parse(await readFile(path.join(root,'compose.json'),'utf8'));
+  const release=JSON.parse(await readFile(path.join(root,'release.json'),'utf8'));
+  release.serviceKeyIds={payroll:'shared-payroll-v1'};
+  const service=compose.services['shared-payroll'];
+  Object.assign(service.environment,{KABIPAY_COMPANY_DATABASE_FILE:'/run/service-secrets/database.json',KABIPAY_SERVICE_KEY_ID:'shared-payroll-v1',KABIPAY_SERVICE_PRIVATE_KEY_FILE:'/run/service-secrets/service.key'});
+  const credentials=path.join(root,'database.json'),key=path.join(root,'service.key');
+  service.volumes.push({type:'bind',source:credentials,target:'/run/service-secrets/database.json'},{type:'bind',source:key,target:'/run/service-secrets/service.key'});
+  config.version=2;for(const company of config.companies){delete company.database_url;delete company.schema;}
+  await writeFile(credentials,JSON.stringify({version:1,server_url:'postgres://payroll_runtime:synthetic@postgres/postgres?sslmode=verify-full',database_prefix:'company_'}));
+  await writeFile(file,JSON.stringify(config));await writeFile(path.join(root,'compose.json'),JSON.stringify(compose));await writeFile(path.join(root,'release.json'),JSON.stringify(release));
+  await assert.rejects(checkSharedConfig(root));
+  await writeFile(key,'synthetic-key-material');await checkSharedConfig(root);
+  service.environment.KABIPAY_SERVICE_KEY_ID='wrong-key-id';
+  await writeFile(path.join(root,'compose.json'),JSON.stringify(compose));await assert.rejects(checkSharedConfig(root));
+  service.environment.KABIPAY_SERVICE_KEY_ID='shared-payroll-v1';
+  await writeFile(path.join(root,'compose.json'),JSON.stringify(compose));
+  await writeFile(key,'');await assert.rejects(checkSharedConfig(root));
 }));

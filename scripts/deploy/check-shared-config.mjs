@@ -10,9 +10,10 @@ export async function checkSharedConfig(root){
   const {services}=await json(path.join(root,'compose.json'));
   requireValue(release.applicationLayout==='shared');
   const expected=new Map(release.companyBindings.map(c=>[c.id,c]));
-  const locations=new Map(),serviceUsers=new Set();let registryServer,catalogVersion;
+  const locations=new Map(),serviceUsers=new Set(),signerIds=new Set(),signerServices=new Set();let registryServer,catalogVersion;
   for(const [name,service] of Object.entries(services)){
     if(!service.environment?.KABIPAY_COMPANY_CONFIG_FILE)continue;
+    const role=name.replace(/^shared-/,'');
     const resolve=target=>{
       const mounts=service.volumes.filter(v=>v.type==='bind'&&(target===v.target||target.startsWith(v.target+'/')))
         .sort((a,b)=>b.target.length-a.target.length);
@@ -25,6 +26,14 @@ export async function checkSharedConfig(root){
     requireValue([1,2].includes(config.version)&&Array.isArray(config.companies)&&config.companies.length===expected.size);
     requireValue(!catalogVersion||catalogVersion===config.version);catalogVersion=config.version;
     if(config.version===2){
+      requireValue(release.serviceKeyIds&&typeof release.serviceKeyIds==='object'&&!Array.isArray(release.serviceKeyIds));
+      if(!['auth','maintenance'].includes(role)){
+        const kid=service.environment.KABIPAY_SERVICE_KEY_ID;
+        requireValue(typeof kid==='string'&&/^[A-Za-z0-9_.-]{1,100}$/.test(kid)&&Object.hasOwn(release.serviceKeyIds,role)&&release.serviceKeyIds[role]===kid&&!signerIds.has(kid));
+        signerIds.add(kid);signerServices.add(role);
+        const key=await stat(resolve(service.environment.KABIPAY_SERVICE_PRIVATE_KEY_FILE??''));
+        requireValue(key.isFile()&&key.size>0&&key.size<=16384);
+      }
       const database=await json(resolve(service.environment.KABIPAY_COMPANY_DATABASE_FILE??''));
       requireValue(database.version===1&&typeof database.server_url==='string');
       requireValue(typeof database.database_prefix==='string'&&/^[a-z_][a-z0-9_]{0,30}_$/.test(database.database_prefix)&&!database.database_prefix.startsWith('pg_'));
@@ -55,7 +64,6 @@ export async function checkSharedConfig(root){
       locations.set(company.tenant_id,binding);
       }
       const settings=company.settings??{},required=[];
-      const role=name.replace(/^shared-/,'');
       if(role==='auth')required.push('KABIPAY_CLIENT_JWT_KEY_ID','KABIPAY_CLIENT_JWT_PRIVATE_KEY_FILE');
       if(['employee','leave','attendance','expense','notification','survey','analytics','maintenance'].includes(role))required.push('KABIPAY_PRIVATE_EVENT_KEYS_FILE');
       if(['survey','analytics'].includes(role))required.push('KABIPAY_PRIVATE_HISTORY_CLIENT_FILE','KABIPAY_PRIVATE_HISTORY_CLIENT_CERT_FILE','KABIPAY_PRIVATE_HISTORY_CLIENT_KEY_FILE');
@@ -69,6 +77,7 @@ export async function checkSharedConfig(root){
     }
   }
   requireValue(locations.size===expected.size);
+  if(catalogVersion===2)requireValue(Object.keys(release.serviceKeyIds).length===signerServices.size);
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))try{
   await checkSharedConfig(process.argv[2]);

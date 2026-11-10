@@ -5,6 +5,26 @@ import {render,validate,publicRoutes} from './render.mjs';
 import {createHash} from 'node:crypto';
 const fixture=JSON.parse(readFileSync(new URL('../../deploy/hrms/manifest.example.json',import.meta.url)));
 
+const signingServices=['employee','leave','attendance','payroll','tax','benefits','expense','recruitment','performance','lms','succession','compensation','assets','grievance','workflow','notification','analytics','survey'];
+const signingIds=()=>Object.fromEntries(signingServices.map(name=>[name,`shared-${name}-v1`]));
+test('shared services receive distinct manifest-owned signer IDs and retain explicit rotation',()=>{
+  const config={...structuredClone(fixture),serviceKeyIds:signingIds()};
+  const services=JSON.parse(render(config)['compose.json']).services;
+  for(const name of signingServices)assert.equal(services[`shared-${name}`].environment.KABIPAY_SERVICE_KEY_ID,config.serviceKeyIds[name]);
+  assert.equal(services['shared-auth'].environment.KABIPAY_SERVICE_KEY_ID,undefined);
+  assert.equal(services['shared-maintenance'].environment.KABIPAY_SERVICE_KEY_ID,undefined);
+  config.serviceKeyIds.leave='shared-leave-v2';
+  const next=JSON.parse(render(config)['compose.json']).services;
+  assert.equal(next['shared-leave'].environment.KABIPAY_SERVICE_KEY_ID,'shared-leave-v2');
+  assert.equal(next['shared-employee'].environment.KABIPAY_SERVICE_KEY_ID,services['shared-employee'].environment.KABIPAY_SERVICE_KEY_ID);
+});
+test('signer ID inventory rejects missing, extra, duplicate and unsafe selectors',()=>{
+  for(const edit of [c=>delete c.serviceKeyIds,c=>delete c.serviceKeyIds.leave,c=>c.serviceKeyIds.unexpected='other',c=>c.serviceKeyIds.leave=c.serviceKeyIds.employee,c=>c.serviceKeyIds.leave='bad\nvalue',c=>c.serviceKeyIds=[]]){
+    const config={...structuredClone(fixture),serviceKeyIds:signingIds()};edit(config);
+    assert.throws(()=>render(config),/service.*key|signing/i);
+  }
+});
+
 test('onboarding generates registry catalogues without adding tenant credentials to service files',()=>{
   const files=render(fixture),{services}=JSON.parse(files['compose.json']);
   const catalog=JSON.parse(files['config/companies/employee.json']);

@@ -30,6 +30,7 @@ export function shareCompanyServices(c, files, services, networks, tenantService
     if(name==='auth')service.environment.KABIPAY_AUTH_PLANE='client';
     else if(name!=='maintenance')Object.assign(service.environment,{
       KABIPAY_SERVICE_ID:`kabipay-${name}`,KABIPAY_SERVICE_PRIVATE_KEY_FILE:'/run/service-secrets/service.key',
+      KABIPAY_SERVICE_KEY_ID:c.serviceKeyIds[name],
       KABIPAY_ORGANIZATION_POLICY_URL:'https://organization-internal:8443'});
     if(['employee','notification','maintenance'].includes(name)){
       service.environment.KABIPAY_LOCAL_FILE_ROOT='/var/lib/kabipay/private-files';

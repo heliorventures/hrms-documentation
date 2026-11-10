@@ -25,6 +25,10 @@ export function validate(config) {
   required(/^[a-zA-Z0-9_.-]+$/.test(network), 'Invalid shared network');
   host(config.publicHost); host(config.apiHost??config.publicHost);
   required(Array.isArray(config.companies) && config.companies.length>0 && config.companies.length<=100, 'Configure 1..100 companies');
+  const signing=config.serviceKeyIds,names=Object.keys(tenantServices);
+  required(signing&&typeof signing==='object'&&!Array.isArray(signing)&&Object.keys(signing).length===names.length&&names.every(name=>Object.hasOwn(signing,name)),'Explicit signing service key ID inventory is required');
+  const signerIds=Object.values(signing);
+  required(signerIds.every(id=>typeof id==='string'&&/^[A-Za-z0-9_.-]{1,100}$/.test(id))&&new Set(signerIds).size===names.length,'Unique safe signing service key IDs are required');
   const pools=config.databasePools;
   required(pools && ['perCompany','opsPerService','applicationBudget'].every(k=>Number.isSafeInteger(pools[k])&&pools[k]>0), 'Explicit database pool budgets are required');
   // 18 business processes + Auth + maintenance. Central operator/organization,
@@ -124,7 +128,7 @@ export function render(input) {
   shareCompanyServices(c,files,services,networks,tenantServices,commandServices,publicRoutes);
   files['compose.json']=JSON.stringify({name:'apps',services,networks},null,2)+'\n';
   files['release.json']=JSON.stringify({version:1,tag:c.tag,mode:c.mode,tenantBaseDomain:c.tenantBaseDomain,
-    applicationLayout:c.applicationLayout,databasePools:c.databasePools,
+    applicationLayout:c.applicationLayout,databasePools:c.databasePools,serviceKeyIds:c.serviceKeyIds,
     companyBindings:c.companies.map(({id,slug,publicHost})=>({id,slug,publicHost})),
     artifacts:[...Object.keys(files),'release.json','release.sha256'],services:Object.keys(services),publicHosts:[c.apiHost,...c.companies.map(v=>v.publicHost)]},null,2);
   files['release.sha256']=Object.entries(files).map(([name,content])=>createHash('sha256').update(content).digest('hex')+'  '+name).join('\n')+'\n';
