@@ -24,5 +24,20 @@ Assert-Test ($script:CapturedRemoteArguments[-1] -ceq $expectedCommand) 'Remote 
 Assert-Test (-not $script:CapturedRemoteArguments[-1].Contains("`r")) 'Windows carriage return reached SSH'
 Invoke-Remote "set -eu`nprintf '%s\n' 'already LF'"
 Assert-Test ($script:CapturedRemoteArguments[-1] -ceq "set -eu`nprintf '%s\n' 'already LF'") 'LF command was altered'
+Initialize-Remote synthetic.invalid deploy 22 ''
+Invoke-RemoteRootScript '/opt/apps/hrms/scripts/release.sh' @('/opt/apps/hrms','synthetic-001','0')
+Assert-Test ($script:CapturedRemoteArguments[-1] -ceq "exec sudo -n -- bash -- '/opt/apps/hrms/scripts/release.sh' '/opt/apps/hrms' 'synthetic-001' '0'") 'Batch release must use noninteractive root execution'
+Assert-Test ($script:CapturedRemoteArguments -notcontains '-tt') 'Batch release unexpectedly allocated a terminal'
+Initialize-Remote synthetic.invalid deploy 22 '' -InteractiveSsh
+Invoke-RemoteRootScript '/opt/apps/hrms/scripts/release.sh' @('/opt/apps/hrms','synthetic-001','0')
+Assert-Test ($script:CapturedRemoteArguments -contains '-tt') 'Interactive sudo requires a remote terminal'
+Assert-Test ($script:CapturedRemoteArguments[-1].StartsWith('exec sudo -- bash -- ')) 'Interactive release must allow native sudo prompt'
+Initialize-Remote synthetic.invalid root 22 '' -InteractiveSsh
+Invoke-RemoteRootScript '/opt/apps/hrms/scripts/release.sh' @('/opt/apps/hrms')
+Assert-Test ($script:CapturedRemoteArguments[-1] -ceq "exec bash -- '/opt/apps/hrms/scripts/release.sh' '/opt/apps/hrms'") 'Root login must not require sudo'
+$rejected=$false
+try{Invoke-RemoteRootScript '/opt/apps/hrms/scripts/release.sh' @('bad;argument')}catch{$rejected=$true}
+Assert-Test $rejected 'Root script arguments must reject shell syntax'
 Write-Host 'PASS: explicit interactive SSH/SCP, default batch mode, identity/port preservation and host trust unchanged.'
 Write-Host 'PASS: CRLF remote commands normalized to LF without changing shell syntax.'
+Write-Host 'PASS: root release uses explicit sudo/TTY policy and rejects unsafe arguments.'

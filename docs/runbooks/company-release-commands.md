@@ -2,6 +2,22 @@
 
 These commands use the existing deployment entry points. Application release and database operations remain separate. Do not run the examples unchanged: paths, tenant IDs, hosts, roles and configuration must match the reviewed environment. No command below automatically stops writers, switches the registry, changes PostgreSQL server settings or installs Kafka/ClickHouse.
 
+## PostgreSQL private network persistence
+
+Company CDC uses a separate private source network per company. The shared
+PostgreSQL container must retain its existing application networks and its
+reviewed metadata, shared-source and company CDC networks. Attaching those
+networks does not require a PostgreSQL restart.
+
+When recreating PostgreSQL later, include the operator-generated
+`config/postgres-networks.override.json` alongside the platform Compose file.
+Review the merged configuration privately before recreation; it can contain
+credentials. Confirm that the existing PostgreSQL storage, command, environment
+and original networks are preserved, with the expected source addresses and
+`postgres` aliases. Do not recreate PostgreSQL from the platform file alone after
+this network setup. Application image deployment remains a separate operation
+and must not recreate the shared database container.
+
 ## 1. Build once, or reuse the saved release
 
 Run from the workspace root in PowerShell. A new release can be built and saved with:
@@ -27,6 +43,19 @@ For the already built `helior-org-20261109-002`, **do not rebuild**. Upload its 
 ## 2. Render the actual production manifest
 
 The example manifest contains fictional tenants. Prepare the actual manifest with every ACTIVE/SUSPENDED tenant, domain, existing client key ID, private-file path and connection budget. Provision the required files according to [the environment contract](../../deploy/hrms/environment.md).
+
+Set `privateHistoryCompanyIds` explicitly to the company UUIDs whose private
+source consumers are ready. Keep all companies in `companies`, including those
+whose private consumers are not active yet. Review the resulting
+`release.activeServices`, `startup-services.txt` and `compose-active.json`;
+startup and readiness use that exact selection. Worker activation does not
+grant organization membership or replace source/CDC permission preparation.
+Never substitute an unscoped `docker compose up` command. Re-rendering these
+artifacts invalidates the inventory receipt and requires a fresh preflight.
+
+For password-based SSH use `-InteractiveSsh` on the upload/deployment commands
+and run them in your normal PowerShell window. The native SSH/sudo prompts
+collect passwords privately; never put passwords in command arguments.
 
 ```powershell
 $Manifest = 'D:\protected\hrms-production-manifest.json'

@@ -3,6 +3,7 @@ import {fileURLToPath} from 'node:url';
 import path from 'node:path';
 import {createHash} from 'node:crypto';
 import {shareCompanyServices} from './shared-services.mjs';
+import {privateActivation,startupScope,activeCompose} from './startup-scope.mjs';
 
 const tenantServices = {employee:4013, leave:4014, attendance:4015, payroll:4016, tax:4017,
   benefits:4018, expense:4019, recruitment:4020, performance:4021, lms:4022, succession:4023,
@@ -51,7 +52,8 @@ export function validate(config) {
     required(!storage.some(p=>p===tenantFiles || p.startsWith(`${tenantFiles}/`) || tenantFiles.startsWith(`${p}/`)),'Company private file paths must not overlap');
     storage.push(tenantFiles);
   }
-  return {...config,appDir,platformDir,appNetwork:network,apiHost:config.apiHost??config.publicHost};
+  const privateHistoryCompanyIds=privateActivation(config.companies,config.privateHistoryCompanyIds);
+  return {...config,privateHistoryCompanyIds,appDir,platformDir,appNetwork:network,apiHost:config.apiHost??config.publicHost};
 }
 
 // One route grammar with an explicit operator or bound company plane.
@@ -92,6 +94,10 @@ export function render(input) {
   Object.assign(networks,{organization:{external:true,name:'hrms_organization'},metadata:{external:true,name:'hrms_metadata'},sources:{external:true,name:'hrms_sources'},'private-history':{internal:true}});
   const publicKeys=mount(`${cfg}/public-keys`,'/run/public-keys');
   const sharedCa=mount(`${cfg}/tls/organization-ca.pem`,'/run/tls/organization-ca.pem');
+  for(const [name,purpose]of [['kabipay-auth','ops-auth'],['kabipay-subgraphs','ops']]){
+    services[name].env_file.push(env(`metadata/${purpose}`));
+    services[name].volumes.push(sharedCa);
+  }
   const identities={}, endpoints={};
   for(const company of c.companies) {
     const source=`source-${company.slug}`;
@@ -102,9 +108,11 @@ export function render(input) {
     KABIPAY_ORGANIZATION_EXECUTION_ENABLED:'true',KABIPAY_ORGANIZATION_IDENTITY_ENDPOINTS:JSON.stringify(identities),
     KABIPAY_ORGANIZATION_RUNTIME_ENDPOINTS:JSON.stringify(endpoints),KABIPAY_ORGANIZATION_HTTP_CA_FILE:'/run/tls/organization-ca.pem',
   },[publicKeys,sharedCa,mount(`${secrets}/organization`,'/run/organization-secrets')]);
+  services.organization.env_file.push(env('organization-runtime'),env('metadata/organization'));
   files['caddy/organization-internal.caddy']='{\n admin off\n auto_https off\n}\nhttps://organization-internal:8443 {\n tls /run/tls/server.pem /run/tls/server.key\n handle /internal/organization/* {\n reverse_proxy organization:4031\n }\n respond 404\n}\n';
   services['organization-internal']={image:'caddy:2.10.2-alpine',restart:'unless-stopped',read_only:true,tmpfs:['/data','/config'],networks:['organization','sources'],volumes:[mount(`${c.appDir}/caddy/organization-internal.caddy`,'/etc/caddy/Caddyfile'),mount(`${secrets}/organization/tls`,'/run/tls')]};
-  const worker = (name,command) => ({image:image('organization-events'),command:['node',`src/${command}.mjs`],env_file:[env(`workers/${name}`)],restart:'unless-stopped',read_only:true,init:true,tmpfs:['/tmp'],networks:['organization','metadata'],volumes:[mount(`${cfg}/events`,'/etc/organization'),mount(`${secrets}/workers/${name}`,'/run/secrets')],environment:{NODE_EXTRA_CA_CERTS:'/run/secrets/clickhouse-ca.crt'}});
+  const metadataWorkers=new Set(['inbox','history','reporting','capture','archive']);
+  const worker = (name,command) => ({image:image('organization-events'),command:['node',`src/${command}.mjs`],env_file:[env(`workers/${name}`),...(metadataWorkers.has(name)?[env(`metadata/workers/${name}`)]:[])],restart:'unless-stopped',read_only:true,init:true,tmpfs:['/tmp'],networks:['organization','metadata'],volumes:[mount(`${cfg}/events`,'/etc/organization'),mount(`${secrets}/workers/${name}`,'/run/secrets'),...(metadataWorkers.has(name)?[sharedCa]:[])],environment:{NODE_EXTRA_CA_CERTS:'/run/secrets/clickhouse-ca.crt'}});
   for(const role of ['inbox','history','reporting']) services[`${role}-worker`]={...worker(role,'worker'),environment:{CONSUMER_ROLE:role,TOPIC_BINDINGS_FILE:'/etc/organization/topic-bindings.json',NODE_EXTRA_CA_CERTS:'/run/secrets/clickhouse-ca.crt'}};
   services['capture-coordinator']=worker('capture','capture-worker');
   services['control-history-worker']=worker('control','control-worker');
@@ -117,6 +125,7 @@ export function render(input) {
     const slug=company.slug,name=`private-${purpose}-${slug}`;
     services[name]={...worker(`private/${slug}/${purpose}`,'private/worker'),networks:['organization'],volumes:[mount(`${cfg}/private/${slug}`,'/etc/private-events'),mount(`${secrets}/workers/private/${slug}/${purpose}`,'/run/secrets')],environment:{NODE_EXTRA_CA_CERTS:'/run/secrets/clickhouse-ca.crt',PRIVATE_EVENT_BINDING_FILE:`/etc/private-events/${purpose}-binding.json`,KABIPAY_PRIVATE_EVENT_KEYS_FILE:'/run/secrets/keys.json'}};
     if(purpose==='delivery')Object.assign(services[name].environment,{KABIPAY_PRIVATE_DELIVERY_WORKER_FILE:'/run/secrets/source.json',PRIVATE_DELIVERY_BROKER_OWNER_ID:company.id,PRIVATE_SOURCE_CA_FILE:'/run/secrets/source-ca.crt',PRIVATE_SOURCE_CERT_FILE:'/run/secrets/source-client.crt',PRIVATE_SOURCE_KEY_FILE:'/run/secrets/source-client.key'});
+    if(!c.privateHistoryCompanyIds.includes(company.id))services[name].profiles=['inactive-private-history'];
   }
   for(const [purpose,script,port] of [['audit','query-server',8445],['delivery','delivery-query-server',8446]]){
     const name=`private-${purpose}-history`;
@@ -126,9 +135,14 @@ export function render(input) {
   services['private-operator-audit']={...worker('private-operator-audit','private/worker'),networks:['organization'],environment:{NODE_EXTRA_CA_CERTS:'/run/secrets/clickhouse-ca.crt',PRIVATE_EVENT_BINDING_FILE:'/etc/organization/operator-audit-binding.json',KABIPAY_PRIVATE_EVENT_KEYS_FILE:'/run/secrets/keys.json'}};
   files['required-tenants.txt']=c.companies.map(v=>v.id).sort().join(',')+'\n';
   shareCompanyServices(c,files,services,networks,tenantServices,commandServices,publicRoutes);
-  files['compose.json']=JSON.stringify({name:'apps',services,networks},null,2)+'\n';
+  const scope=startupScope(c.companies,c.privateHistoryCompanyIds,services);
+  files['startup-services.txt']=scope.active.join('\n')+'\n';
+  const composition={name:'apps',services,networks};
+  files['compose.json']=JSON.stringify(composition,null,2)+'\n';
+  files['compose-active.json']=JSON.stringify(activeCompose(composition,scope.active),null,2)+'\n';
   files['release.json']=JSON.stringify({version:1,tag:c.tag,mode:c.mode,tenantBaseDomain:c.tenantBaseDomain,
     applicationLayout:c.applicationLayout,databasePools:c.databasePools,serviceKeyIds:c.serviceKeyIds,
+    privateHistoryCompanyIds:scope.privateHistoryCompanyIds,activeServices:scope.active,
     companyBindings:c.companies.map(({id,slug,publicHost})=>({id,slug,publicHost})),
     artifacts:[...Object.keys(files),'release.json','release.sha256'],services:Object.keys(services),publicHosts:[c.apiHost,...c.companies.map(v=>v.publicHost)]},null,2);
   files['release.sha256']=Object.entries(files).map(([name,content])=>createHash('sha256').update(content).digest('hex')+'  '+name).join('\n')+'\n';

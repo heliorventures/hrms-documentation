@@ -10,7 +10,7 @@ validate_apps="$6"
 mode="$7"
 [ "$mode" = organization ] || { echo 'This release requires organization mode; rollback uses previous reviewed artifacts.' >&2; exit 1; }
 cd "$app_dir"
-compose=(docker compose --project-name apps --file "$app_dir/compose.json")
+compose=(docker compose --project-name apps --file "$app_dir/compose-active.json")
 "${compose[@]}" config --quiet
 if [ "$start_apps" = 1 ]; then
     retired_worker_running() {
@@ -62,6 +62,46 @@ if [ "$load_images" = 1 ]; then
     done
     python3 "$app_dir/scripts/image-archive.py" "$image_dir" "$tag" --load
 fi
+if [ "$start_apps" = 1 ] || [ "$validate_apps" = 1 ]; then
+    if ! organization_ui="$(docker image inspect --format '{{index .Config.Labels "io.kabipay.ui.organization-workspace"}}' "kabipay-ui:$tag")"; then
+        echo 'UI image feature metadata could not be inspected.' >&2; exit 1
+    fi
+    [ "$organization_ui" = true ] || {
+        echo 'This release requires a UI image built with the organization workspace enabled.' >&2; exit 1
+    }
+    # Do not enumerate every Compose definition: dormant source workers are
+    # independent of the full company credential/catalog inventory.
+    if ! scope="$(docker run --rm --network none --read-only --memory 128m --user 0 \
+        --mount "type=bind,source=$app_dir,target=$app_dir,readonly" \
+        --entrypoint node "kabipay-organization-events:$tag" \
+        "$app_dir/scripts/startup-scope.mjs" "$app_dir")"; then
+        echo 'Reviewed startup selection could not be verified.' >&2; exit 1
+    fi
+    services=(); inactive_services=()
+    declare -A expected_images=()
+    while IFS='|' read -r activation service image; do
+        [[ "$service" =~ ^[a-z][a-z0-9-]*$ ]] || exit 1
+        case "$activation" in
+            active)
+                services+=("$service")
+                expected_images[$service]="$(docker image inspect --format '{{.Id}}' "$image")"
+                [[ "${expected_images[$service]}" =~ ^sha256:[a-f0-9]{64}$ ]] || exit 1
+                ;;
+            inactive) inactive_services+=("$service");;
+            *) exit 1;;
+        esac
+    done <<< "$scope"
+    [ "${#services[@]}" -ge 39 ] || exit 1
+    check_inactive_workers() {
+        for service in "${inactive_services[@]}"; do
+            if ! ids="$(docker ps --filter label=com.docker.compose.project=apps --filter "label=com.docker.compose.service=$service" --format '{{.ID}}')"; then exit 1; fi
+            [ -z "$ids" ] || { echo 'An inactive private worker is running; review its source activation. Nothing is stopped automatically.' >&2; exit 1; }
+            if ! ids="$(docker ps --filter "name=^/apps-$service-1$" --format '{{.ID}}')"; then exit 1; fi
+            [ -z "$ids" ] || { echo 'An inactive private worker is running; review its source activation. Nothing is stopped automatically.' >&2; exit 1; }
+        done
+    }
+    check_inactive_workers
+fi
 if [ "$start_apps" = 1 ]; then
     docker run --rm --network none --read-only --memory 128m --user 0 \
         --mount "type=bind,source=$app_dir,target=$app_dir,readonly" \
@@ -77,21 +117,23 @@ if [ "$start_apps" = 1 ]; then
         [ -n "$config_file" ] || continue
         bash "$app_dir/scripts/reconcile-env.sh" "$app_dir" "$tag" --check-finance-file "$config_file"
     done < "$app_dir/finance-checks.txt"
-    mapfile -t services < <("${compose[@]}" config --services)
     # Image loading and preflights can outlast the receipt or change artifacts.
     bash "$app_dir/scripts/check-inventory.sh" "$app_dir" "$tag"
-    "${compose[@]}" up --detach --no-build "${services[@]}"
+    check_inactive_workers
+    "${compose[@]}" up --detach --no-build --no-deps --pull never "${services[@]}"
 fi
 if [ "$validate_apps" = 1 ]; then
     deadline=$((SECONDS+120))
     while :; do
         missing=0
-        while read -r service; do
+        for service in "${services[@]}"; do
             id="$("${compose[@]}" ps --all --quiet "$service")"
             [ -n "$id" ] || { missing=1; continue; }
-            state="$(docker inspect --format '{{.State.Status}}' "$id")"
-            [ "$state" = running ] || missing=1
-        done < <("${compose[@]}" config --services)
+            [[ "$id" =~ ^[a-f0-9]{12,64}$ ]] || { echo 'Ambiguous selected service container.' >&2; exit 1; }
+            state="$(docker inspect --format '{{.State.Status}}|{{.Image}}' "$id")"
+            [ "$state" = "running|${expected_images[$service]}" ] || missing=1
+        done
+        check_inactive_workers
         [ "$missing" = 0 ] && break
         [ "$SECONDS" -lt "$deadline" ] || { echo 'HRMS services are not all running; inspect restricted logs.' >&2; exit 1; }
         sleep 2

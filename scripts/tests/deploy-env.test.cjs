@@ -22,13 +22,31 @@ const example = valid.replaceAll('existing-', 'example-') + 'NEW_SETTING=enabled
 const inventoryFixture=String.raw`
 make_inventory_fixture() {
  printf '{}' > compose.json
+ printf '{}' > compose-active.json
  printf '{}' > release.json
+ printf 'fixture-1\n' > startup-services.txt
  printf '11111111-1111-4111-8111-111111111111\n' > required-tenants.txt
- sha256sum --text compose.json release.json required-tenants.txt > release.sha256
+ sha256sum --text compose.json compose-active.json release.json required-tenants.txt startup-services.txt > release.sha256
  now="$(date -u +%s)"
  digest="$(sha256sum release.sha256 | cut -d ' ' -f 1)"
  printf 'version=1\nscope=single-shared-fleet\ntag=release-002\nrelease_sha256=%s\nchecked_at=%s\nexpires_at=%s\ntenant_ids=11111111-1111-4111-8111-111111111111\n' "$digest" "$now" "$((now+900))" > cutover-inventory.txt
 }
+`;
+// The existing shell tests isolate Finance/retired-writer boundaries. Provide
+// their newly introduced startup-selector dependency explicitly; its real
+// JSON policy and exact selected startup are exercised by startup-scope tests.
+const startupMock=String.raw`
+docker() {
+ if [ "$1" = run ]; then
+  case "$*" in *'/scripts/startup-scope.mjs '*)
+   if [ "$(printenv WORKER_CASE || true)" = expire-receipt ]; then sed -i 's/^expires_at=.*/expires_at=1/' cutover-inventory.txt; fi
+   for index in {1..39}; do printf 'active|fixture-%s|synthetic:release-002\n' "$index"; done
+   return 0;; esac
+ fi
+ if [ "$1" = image ] && [ "$2" = inspect ]; then printf 'sha256:%064d\n' 0; return 0; fi
+ command docker "$@"
+}
+export -f docker
 `;
 
 function run(body) {
@@ -49,7 +67,7 @@ function run(body) {
     const modeHelper=process.platform==='win32' ? 'assert_private_mode() { :; }' : 'assert_private_mode() { test "$(stat -c %a "$1")" = 600; }';
     const isolatedBody=body.replaceAll('/fixtures/',`${fixturePath}/`).replaceAll('/tmp/',`${temporaryPath}/`);
     const result=spawnSync(bash,['--noprofile','--norc','-s'],{
-      input:`set -euo pipefail\n${modeHelper}\nmkdir "${temporaryPath}/app"\ncd "${temporaryPath}/app"\nmkdir scripts\ncp "${fixturePath}/check-inventory.sh" scripts/check-inventory.sh\ncp "${fixturePath}/fixture.env" .env\ncp "${fixturePath}/fixture.example" .env.example\n${inventoryFixture}\n${isolatedBody}\n`,
+      input:`set -euo pipefail\n${modeHelper}\nmkdir "${temporaryPath}/app"\ncd "${temporaryPath}/app"\nmkdir scripts\ncp "${fixturePath}/check-inventory.sh" scripts/check-inventory.sh\ncp "${fixturePath}/fixture.env" .env\ncp "${fixturePath}/fixture.example" .env.example\n${inventoryFixture}\n${startupMock}\n${isolatedBody}\n`,
       encoding:'utf8',timeout:60000,env:{...process.env,MSYS_NO_PATHCONV:'1'},
     });
     assert.ifError(result.error);

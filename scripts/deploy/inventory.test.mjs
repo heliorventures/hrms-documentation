@@ -36,6 +36,7 @@ test('complete live registry inventory accepts active and suspended companies wi
 });
 test('omitting an active or suspended tenant blocks inventory issuance',()=>{
   const config=structuredClone(example);config.companies.pop();
+  config.privateHistoryCompanyIds=config.companies.map(c=>c.id);
   const f=fixture(config);try {
     for(const status of ['ACTIVE','SUSPENDED'])assert.throws(()=>checkRegistry(f.release,[...f.rows,{id:example.companies[1].id,subdomain:'company-b',status,is_deleted:false}]),/INVENTORY_MISSING_TENANTS/);
   }finally{f.cleanup();}

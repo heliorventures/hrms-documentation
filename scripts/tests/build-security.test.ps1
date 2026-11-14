@@ -50,6 +50,24 @@ try {
     }
     Assert-Test ($global:SecurityGateCalls[0][0] -eq 'run' -and $global:SecurityGateCalls[2][0] -eq 'run') 'Audits must precede builds'
     Assert-Test (@($global:SecurityGateCalls | Where-Object { $_[0] -eq 'build' }).Count -eq 4) 'Successful audit changed build inventory'
+    $uiBuild = @($global:SecurityGateCalls | Where-Object { $_[0] -eq 'build' -and $_[-1] -eq (Join-Path $temporary 'hrms-ui') })[0]
+    Assert-Test ($uiBuild -contains 'VITE_ORGANIZATION_ENABLED=false') 'Default organization build flag must be explicit'
+    $global:SecurityGateCalls.Clear()
+    & $entry -Tag organization-test -SourceRoot $temporary -OutputDir (Join-Path $temporary 'organization-out') -SkipUpload -EnableOrganizationWorkspace
+    $uiBuild = @($global:SecurityGateCalls | Where-Object { $_[0] -eq 'build' -and $_[-1] -eq (Join-Path $temporary 'hrms-ui') })[0]
+    Assert-Test ($uiBuild -contains 'VITE_ORGANIZATION_ENABLED=true') 'Organization flag did not reach the UI Docker build'
+    $global:SecurityGateCalls.Clear()
+    $organizationManifest = Join-Path $temporary 'organization-manifest.json'
+    [IO.File]::WriteAllText($organizationManifest,'{"mode":"organization"}')
+    & $entry -Tag manifest-test -SourceRoot $temporary -OutputDir (Join-Path $temporary 'manifest-out') -SkipUpload -Manifest $organizationManifest
+    $uiBuild = @($global:SecurityGateCalls | Where-Object { $_[0] -eq 'build' -and $_[-1] -eq (Join-Path $temporary 'hrms-ui') })[0]
+    Assert-Test ($uiBuild -contains 'VITE_ORGANIZATION_ENABLED=true') 'Organization manifest must enable its workspace without a second flag'
+    $global:SecurityGateCalls.Clear()
+    $rejected = $false
+    try { & $entry -Tag mismatch-test -SourceRoot $temporary -OutputDir (Join-Path $temporary 'mismatch-out') -SkipUpload -Manifest $organizationManifest -EnableOrganizationWorkspace:$false }
+    catch { $rejected = $true }
+    Assert-Test $rejected 'Organization manifest accepted a disabled workspace'
+    Assert-Test ($global:SecurityGateCalls.Count -eq 0) 'Feature mismatch reached Docker'
     # A missing lockfile must fail before any image builds.
     Remove-Item -LiteralPath (Join-Path $temporary 'hrms-ui/package-lock.json')
     $global:SecurityGateCalls.Clear()

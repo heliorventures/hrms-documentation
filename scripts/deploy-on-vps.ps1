@@ -20,7 +20,9 @@ param(
 )
 $ErrorActionPreference='Stop'
 . (Join-Path $PSScriptRoot 'deploy/Remote.ps1')
+. (Join-Path $PSScriptRoot 'deploy/ReleaseBundle.ps1')
 Assert-RemoteValue $AppDir 'AppDir'; Assert-RemoteValue $ImageDir 'ImageDir'
+if ($AppDir -cnotmatch '^/(opt|srv)/apps/hrms(-[a-z0-9][a-z0-9-]{0,30})?$') { throw 'AppDir must be a dedicated /opt/apps/hrms[-name] or /srv/apps/hrms[-name] application root.' }
 if ($AppDir -eq '/opt/apps' -or -not $ImageDir.StartsWith("$AppDir/")) { throw 'Use an HRMS application subdirectory and its own images directory; platform root is separate.' }
 if ($SyncCaddyfile -or $CaddySiteAddress) { throw 'Root Caddy is shared: use the reviewed platform setup/Caddy procedure, not an HRMS application release.' }
 if ($SyncEnvExample) { throw 'Provision separate env files using deploy/hrms/environment.md. Fleet-wide deploy/.env is never copied into organization containers.' }
@@ -47,29 +49,13 @@ if ($Up) {
     if ($inventory.PSIsContainer -or ($inventory.Attributes -band [System.IO.FileAttributes]::ReparsePoint)) { throw 'Inventory report must be a regular file.' }
 }
 Initialize-Remote $VpsHost $VpsUser $SshPort $SshIdentityFile -InteractiveSsh:$InteractiveSsh
-Invoke-Remote "set -eu; umask 077; mkdir -p '$AppDir/config' '$AppDir/caddy' '$AppDir/images' '$AppDir/scripts'"
-if ($SyncCompose) {
-    $release=Get-Content -LiteralPath (Join-Path $OutputDir 'release.json') -Raw | ConvertFrom-Json
-    foreach ($relative in $release.artifacts) {
-        Assert-RemoteValue $relative 'artifact relative path'
-        if ($relative.StartsWith('/') -or $relative.StartsWith('.')) { throw 'Invalid generated artifact path.' }
-        $file=Get-Item -LiteralPath (Join-Path $OutputDir $relative)
-        if ($file.Attributes -band [System.IO.FileAttributes]::ReparsePoint) { throw 'Generated artifacts cannot be symlinks.' }
-        $destination="$AppDir/$relative"
-        $parent=$destination.Substring(0,$destination.LastIndexOf('/'))
-        Invoke-Remote "set -eu; umask 077; mkdir -p '$parent'"
-        Copy-Remote $file.FullName $destination
-    }
-}
-Copy-Remote (Join-Path $PSScriptRoot 'deploy/release.sh') "$AppDir/scripts/release.sh"
-Copy-Remote (Join-Path $PSScriptRoot 'deploy/reconcile-env.sh') "$AppDir/scripts/reconcile-env.sh"
-Copy-Remote (Join-Path $PSScriptRoot 'deploy/check-inventory.sh') "$AppDir/scripts/check-inventory.sh"
-Copy-Remote (Join-Path $PSScriptRoot 'deploy/check-shared-config.mjs') "$AppDir/scripts/check-shared-config.mjs"
-Copy-Remote (Join-Path $PSScriptRoot 'deploy/image-archive.py') "$AppDir/scripts/image-archive.py"
-if ($Up) {
-    Copy-Remote $inventory.FullName "$AppDir/cutover-inventory.txt"
-    Invoke-Remote "set -eu; chmod 600 '$AppDir/cutover-inventory.txt'"
-}
-$loadFlag=if($LoadImages){'1'}else{'0'}; $upFlag=if($Up){'1'}else{'0'}; $validateFlag=if($Validate){'1'}else{'0'}
-Invoke-Remote "set -eu; bash '$AppDir/scripts/release.sh' '$AppDir' '$ImageDir' '$Tag' '$loadFlag' '$upFlag' '$validateFlag' '$($config.mode)'"
+$release=Get-Content -LiteralPath (Join-Path $OutputDir 'release.json') -Raw | ConvertFrom-Json
+$inventoryPath=if($Up){$inventory.FullName}else{''}
+$bundle=New-ReleaseBundle $OutputDir (Join-Path $PSScriptRoot 'deploy') $release $AppDir $ImageDir $Tag ([bool]$SyncCompose) ([bool]$LoadImages) ([bool]$Up) ([bool]$Validate) $inventoryPath
+$staging='/tmp/hrms-release-'+[guid]::NewGuid().ToString('N')
+Invoke-Remote "set -eu; umask 077; mkdir -m 700 -- '$staging'"
+# One native transfer and one root install replace per-artifact password prompts.
+Invoke-Native 'scp' ($script:ScpArguments+@($bundle.path,(Join-Path $PSScriptRoot 'deploy/install-release.py'),"${script:RemoteTarget}:$staging/"))
+$remoteBundleName=[IO.Path]::GetFileName($bundle.path)
+Invoke-RemoteRootScript "$staging/install-release.py" @("$staging/$remoteBundleName",$bundle.sha256) -Interpreter python3
 if ($Up) { Write-Host 'HRMS rollout requested. Root Caddy reload and cross-company acceptance remain explicit release steps.' }

@@ -14,7 +14,10 @@ export function shareCompanyServices(c, files, services, networks, tenantService
     const service={image:`kabipay-svc:${c.tag}`,command:[`kabipay-${name==='maintenance'?'tenant-maintenance':name}`],
       restart:'unless-stopped',init:true,read_only:true,tmpfs:['/tmp'],
       logging:{driver:'json-file',options:{'max-size':'10m','max-file':'3'}}};
-    service.env_file=[`${root}/env/shared/${name==='auth'?'auth':'runtime'}.env`];
+    service.env_file=[`${root}/env/shared/${name==='auth'?'auth':'runtime'}.env`,
+      ...(['employee','payroll'].includes(name)?[`${root}/env/shared/finance.env`]:[]),
+      ...(name==='employee'?[`${root}/env/shared/employee-profile.env`]:[]),
+      `${root}/env/metadata/${name}.env`];
     service.networks=[sharedNetwork,'sources','metadata',egress];
     if(['survey','analytics'].includes(name))service.networks.push('private-history');
     service.environment={KABIPAY_COMPANY_CONFIG_FILE:sharedConfig,KABIPAY_CLIENT_JWT_MODE:'rs256',
@@ -91,7 +94,7 @@ export function shareCompanyServices(c, files, services, networks, tenantService
   services['shared-ingress']={...proxy,networks:[sharedNetwork,'app-network'],volumes:[
     mount(`${root}/caddy/shared-public.caddy`,'/etc/caddy/Caddyfile'),mount(`${root}/config`,'/run/ui-config')]};
   services['shared-source']={...proxy,networks:{[sharedNetwork]:{},organization:{aliases:c.companies.map(company=>`source-${company.slug}`)}},volumes:sourceVolumes};
-  files['finance-checks.txt']=`${root}/env/shared/runtime.env|shared-employee shared-payroll\n`;
+  files['finance-checks.txt']=`${root}/env/shared/finance.env|shared-employee shared-payroll\n`;
   files['private-files.txt']=c.companies.map(company=>`${company.privateFilesPath}/tenants/${company.id}`).join('\n')+'\n';
   files['company-configs.txt']=names.map(name=>`${root}/config/companies/${name}.json`).join('\n')+'\n';
 }

@@ -7,6 +7,42 @@ const fixture=JSON.parse(readFileSync(new URL('../../deploy/hrms/manifest.exampl
 
 const signingServices=['employee','leave','attendance','payroll','tax','benefits','expense','recruitment','performance','lms','succession','compensation','assets','grievance','workflow','notification','analytics','survey'];
 const signingIds=()=>Object.fromEntries(signingServices.map(name=>[name,`shared-${name}-v1`]));
+
+test('organization runtime reporting and archive configuration has one explicit purpose file',()=>{
+  const {services}=JSON.parse(render(fixture)['compose.json']);
+  const extra=`${fixture.appDir}/env/organization-runtime.env`;
+  assert.deepEqual(Object.entries(services).filter(([,s])=>s.env_file?.includes(extra)).map(([name])=>name),['organization']);
+  assert.deepEqual(services.organization.env_file,[`${fixture.appDir}/env/organization.env`,extra,`${fixture.appDir}/env/metadata/organization.env`]);
+});
+
+test('Finance credentials mount only into the two Finance callers',()=>{
+  const files=render(fixture),{services}=JSON.parse(files['compose.json']);
+  const finance=`${fixture.appDir}/env/shared/finance.env`;
+  const readers=Object.entries(services).filter(([,s])=>s.env_file?.includes(finance)).map(([name])=>name).sort();
+  assert.deepEqual(readers,['shared-employee','shared-payroll']);
+  assert.equal(files['finance-checks.txt'],`${finance}|shared-employee shared-payroll\n`);
+});
+
+test('metadata credentials are purpose-specific and every metadata client mounts its verified CA',()=>{
+  const {services}=JSON.parse(render(fixture)['compose.json']);
+  const files=new Set();
+  for(const name of [...signingServices,'auth','maintenance']){
+    const service=services[`shared-${name}`];
+    const expected=`${fixture.appDir}/env/metadata/${name}.env`;
+    assert.equal(service.env_file.at(-1),expected);
+    assert(!files.has(expected));files.add(expected);
+    assert(service.volumes.some(v=>v.target==='/run/tls/organization-ca.pem'&&v.read_only));
+  }
+  for(const [service,purpose]of [['kabipay-auth','ops-auth'],['kabipay-subgraphs','ops'],['organization','organization']]){
+    assert.equal(services[service].env_file.at(-1),`${fixture.appDir}/env/metadata/${purpose}.env`);
+    assert(services[service].volumes.some(v=>v.target==='/run/tls/organization-ca.pem'&&v.read_only));
+  }
+  for(const [service,purpose]of [['inbox-worker','inbox'],['history-worker','history'],['reporting-worker','reporting'],['capture-coordinator','capture'],['archive','archive']]){
+    assert.equal(services[service].env_file.at(-1),`${fixture.appDir}/env/metadata/workers/${purpose}.env`);
+    assert(services[service].volumes.some(v=>v.target==='/run/tls/organization-ca.pem'&&v.read_only));
+  }
+  assert(!services['control-history-worker'].env_file.some(file=>file.includes('/env/metadata/')));
+});
 test('shared services receive distinct manifest-owned signer IDs and retain explicit rotation',()=>{
   const config={...structuredClone(fixture),serviceKeyIds:signingIds()};
   const services=JSON.parse(render(config)['compose.json']).services;
@@ -76,6 +112,7 @@ test('five separate companies still deploy exactly 18 business application proce
   const config=structuredClone(fixture);
   config.companies=Array.from({length:5},(_,i)=>({id:`00000000-0000-4000-8000-00000000000${i+1}`,slug:`company-${i+1}`,clientJwtKeyId:`company-${i+1}-client-v1`,publicHost:`company-${i+1}.${config.tenantBaseDomain}`,privateFilesPath:`${config.appDir}/data/company-${i+1}/private-files`}));
   config.databasePools.applicationBudget=120;
+  config.privateHistoryCompanyIds=config.companies.map(c=>c.id);
   const files=render(config),{services}=JSON.parse(files['compose.json']);
   const business=Object.values(services).filter(s=>s.command?.[0]?.startsWith('kabipay-')&&!['kabipay-auth','kabipay-ops','kabipay-organization','kabipay-tenant-maintenance'].includes(s.command[0]));
   assert.equal(business.length,18);
@@ -129,7 +166,7 @@ test('application release excludes shared installation and shares application pr
   assert.equal(services['kabipay-outbox-worker'],undefined);
   assert.equal(services['shared-gateway'].environment.KABIPAY_ORGANIZATION_ENABLED,'true');
   assert(!Object.values(services).some(s=>s.ports));
-  assert(files['finance-checks.txt'].includes('/env/shared/runtime.env|shared-employee shared-payroll'));
+  assert(files['finance-checks.txt'].includes('/env/shared/finance.env|shared-employee shared-payroll'));
 });
 test('company sessions use their own public hostname and internal APIs are denied',()=>{
   const f=render(fixture);

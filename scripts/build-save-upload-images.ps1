@@ -74,6 +74,9 @@ param(
 
     [string]$EventsDir,
 
+    # Compile the existing organization workspace into the browser bundle.
+    [switch]$EnableOrganizationWorkspace,
+
     [string]$PublicBaseUrl,
 
     [string]$ApiBaseUrl,
@@ -96,6 +99,16 @@ Assert-RemoteValue $AppDir 'AppDir'
 if (-not $RemoteDir.StartsWith('/') -or $RemoteDir -eq '/') { throw 'RemoteDir must be an absolute HRMS image directory.' }
 if ($DeployAfterUpload -and -not $RemoteDir.StartsWith("$AppDir/")) { throw 'RemoteDir must be within AppDir for an HRMS application release.' }
 if ($Manifest -and -not (Test-Path -LiteralPath $Manifest -PathType Leaf)) { throw 'Manifest file does not exist.' }
+$UiOrganizationEnabled = $EnableOrganizationWorkspace.IsPresent
+if ($Manifest) {
+    $BuildManifest = Get-Content -LiteralPath $Manifest -Raw | ConvertFrom-Json
+    if ($BuildManifest.mode -eq 'organization') {
+        if ($PSBoundParameters.ContainsKey('EnableOrganizationWorkspace') -and -not $EnableOrganizationWorkspace) {
+            throw 'An organization manifest requires the organization workspace in its UI image.'
+        }
+        $UiOrganizationEnabled = $true
+    }
+}
 
 $ProjectDocumentationDir = Split-Path -Parent $PSScriptRoot
 $Root = Split-Path -Parent $ProjectDocumentationDir
@@ -295,7 +308,8 @@ Run-Command "Building $GatewayImage" {
 }
 
 Run-Command "Building $UiImage" {
-    docker build -t $UiImage $UiDir
+    $organizationFlag = if ($UiOrganizationEnabled) { 'true' } else { 'false' }
+    docker build --build-arg "VITE_ORGANIZATION_ENABLED=$organizationFlag" -t $UiImage $UiDir
 }
 
 Run-Command "Building $EventsImage" {

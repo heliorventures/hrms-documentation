@@ -34,7 +34,7 @@ while IFS= read -r line || [ -n "$line" ]; do
     test -f "$relative" && test ! -L "$relative" || fail
     [ "$(realpath -e -- "$relative")" = "$app_dir/$relative" ] || fail
 done < release.sha256
-[[ -v 'indexed[release.json]' && -v 'indexed[compose.json]' && -v 'indexed[required-tenants.txt]' ]] || fail
+[[ -v 'indexed[release.json]' && -v 'indexed[compose.json]' && -v 'indexed[compose-active.json]' && -v 'indexed[required-tenants.txt]' && -v 'indexed[startup-services.txt]' ]] || fail
 sha256sum --check --strict --status release.sha256 2>/dev/null || fail
 digest="$(sha256sum -- release.sha256)"
 [ "${digest%% *}" = "${receipt[release_sha256]}" ] || fail

@@ -27,10 +27,21 @@ try {
     & $entry -Tag synthetic-001 -Manifest $inputFile -OutputDir $output -VpsHost synthetic.invalid -Deploy -InventoryReport $inventory
     $uploads=@($global:HrmsDeploymentTestCalls|Where-Object{$_.kind -eq 'scp'})
     $release=Get-Content -LiteralPath (Join-Path $output 'release.json') -Raw|ConvertFrom-Json
-    Assert-Test ($uploads.Count -eq ($release.artifacts.Count+6)) 'Unexpected upload inventory'
+    Assert-Test ($uploads.Count -eq 1) 'Release must use one bundled upload'
     Assert-Test (-not (($uploads|ConvertTo-Json -Depth 10).Contains('stale-secret.env'))) 'Reused output secret uploaded'
+    $zipPath=@($uploads[0].arguments|Where-Object{$_ -like '*.zip'})[0]
+    $zipStream=[IO.File]::OpenRead($zipPath);$zip=[IO.Compression.ZipArchive]::new($zipStream,[IO.Compression.ZipArchiveMode]::Read,$false)
+    try {
+        $members=@($zip.Entries|ForEach-Object{$_.FullName})
+        Assert-Test ($members.Count -eq ($release.artifacts.Count+8)) 'Bundle has unexpected artifact/helper/inventory manifest entries'
+        Assert-Test ($members -notcontains 'stale-secret.env') 'Stale secret entered bundle contents'
+        Assert-Test ($members -contains 'cutover-inventory.txt') 'Startup bundle omitted reviewed inventory'
+        Assert-Test (-not ($members|Where-Object{$_ -match '(^|/)(env|secrets|data)/'})) 'Protected runtime path entered public bundle'
+    }finally{$zip.Dispose();$zipStream.Dispose()}
     $commands=($global:HrmsDeploymentTestCalls|Where-Object{$_.kind -eq 'ssh'}|ForEach-Object{$_.arguments -join ' '}) -join "`n"
-    Assert-Test ($commands.Contains("'/opt/apps/hrms/scripts/release.sh'")) 'Canonical release script not called'
+    Assert-Test ($commands.Contains('exec sudo -n -- python3 -- ')) 'Release installation must run as root to read protected configuration'
+    Assert-Test ($commands.Contains('install-release.py')) 'Canonical release installer not called'
+    Assert-Test ($commands.Contains('mkdir -m 700')) 'Uploads require a private, unique staging directory'
     Assert-Test (-not $commands.Contains('/opt/apps/Caddyfile')) 'Application changed shared Caddy'
     Assert-Test (-not $commands.Contains('psql')) 'Application attempted PostgreSQL provisioning'
     $before=$global:HrmsDeploymentTestCalls.Count
@@ -45,6 +56,15 @@ try {
     try{& $entry -Tag synthetic-001 -Manifest $inputFile -OutputDir $output -VpsHost 'bad;host' -Deploy -InventoryReport $inventory}catch{$rejected=$true}
     Assert-Test $rejected 'SSH selector injection accepted'
     Assert-Test ($global:HrmsDeploymentTestCalls.Count -eq $before) 'Invalid host contacted remote'
+    foreach($company in $manifest.companies){$company.privateFilesPath='/opt/apps/data/private-files'}
+    $unsafeInput=Join-Path $temporary 'unsafe-root-manifest.json'
+    [IO.File]::WriteAllText($unsafeInput,($manifest|ConvertTo-Json -Depth 20),[Text.UTF8Encoding]::new($false))
+    foreach($unsafeRoot in @('/opt/apps/hrms/secrets','/opt/apps/hrms/env','/opt/apps/hrms/data','/opt/apps/data','/opt/apps/finance')) {
+        $rejected=$false
+        try{& $entry -Tag synthetic-001 -Manifest $unsafeInput -OutputDir $output -VpsHost synthetic.invalid -AppDir $unsafeRoot -ImageDir "$unsafeRoot/images" -Deploy -InventoryReport $inventory}catch{$rejected=$true}
+        Assert-Test $rejected 'Protected/shared application root accepted'
+        Assert-Test ($global:HrmsDeploymentTestCalls.Count -eq $before) 'Unsafe application root contacted remote'
+    }
     Write-Host 'PASS: render-only, defaultable manifest, exact artifact allowlist, app-only remote flow and rejected mixed/injected operations.'
 }finally {
     $resolved=[System.IO.Path]::GetFullPath($temporary)
