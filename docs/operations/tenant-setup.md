@@ -181,6 +181,6 @@ Validate:
 
 - Temporary password was shared out-of-band.
 - Each bootstrap admin changed the temporary password.
-- `KABIPAY_PROFILE_CHANGE_ENCRYPTION_KEY` exists in `/opt/apps/.env`.
+- Shared deployments provide the existing `KABIPAY_PROFILE_CHANGE_ENCRYPTION_KEY` through `/opt/apps/hrms/env/shared/employee-profile.env` (root-owned, mode 0600), attached only to `shared-employee`. Preserve the original key when moving from legacy `/opt/apps/.env`; generating a replacement makes existing pending requests unreadable. The pure planner is `scripts/deploy/profile_encryption.py`. Verify pending-request decryption privately before changing the service, and verify protected review details after deployment. Never print or commit the key.
 - No demo data was loaded.
 - DNS points only to the intended production VPS/load balancer.
